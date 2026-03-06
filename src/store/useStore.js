@@ -4,7 +4,7 @@
 
 import { supabase } from '../supabase'
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { DEFAULT_ADDRESSES, COUPONS } from "../data/products";
+import { COUPONS } from "../data/products";
 import { genId } from "../utils";
 
 export function useStore() {
@@ -103,10 +103,33 @@ export function useStore() {
   }, [currentUser])
 
   // ─────────────────────────────────────────
-  //  ADDRESS
+  //  ADDRESS — tersimpan ke Supabase
   // ─────────────────────────────────────────
-  const [addresses, setAddresses]                 = useState(DEFAULT_ADDRESSES);
-  const [selectedAddressId, setSelectedAddressId] = useState("a1");
+  const [addresses, setAddresses]                 = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+
+  // Load alamat dari Supabase saat user login
+  useEffect(() => {
+    if (!currentUser) {
+      setAddresses([]);
+      setSelectedAddressId(null);
+      return;
+    }
+    supabase
+      .from('addresses')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .order('created_at', { ascending: true })
+      .then(({ data, error }) => {
+        if (error) { console.error('❌ Addresses error:', error); return; }
+        const addrs = data || [];
+        setAddresses(addrs);
+        // Auto-pilih alamat pertama kalau belum ada yang dipilih
+        if (addrs.length > 0 && !selectedAddressId) {
+          setSelectedAddressId(addrs[0].id);
+        }
+      })
+  }, [currentUser])
 
   // ─────────────────────────────────────────
   //  CHECKOUT EXTRAS
@@ -199,7 +222,7 @@ export function useStore() {
       .from('orders').insert(newOrder).select().single()
     if (error) { console.error('Gagal simpan order:', error); return; }
 
-    // Simpan order items (dengan bg untuk tampilan)
+    // Simpan order items
     const items = cart.map(item => ({
       order_id:   data.id,
       product_id: String(item.productId || item.id),
@@ -219,7 +242,6 @@ export function useStore() {
       const qtyBought = item.qty;
 
       if (pid.startsWith('p')) {
-        // Regular product
         const numericId = parseInt(pid.replace('p', ''));
         const prod = products.find(p => p.id === pid);
         if (prod) {
@@ -231,7 +253,6 @@ export function useStore() {
           ));
         }
       } else {
-        // Seller product
         const prod = sellerProducts.find(p => p.id === pid);
         if (prod) {
           const newSold    = (parseInt(prod.sold) || 0) + qtyBought;
@@ -252,7 +273,7 @@ export function useStore() {
   }, [cart, currentUser, products, sellerProducts, clearCart])
 
   // ─────────────────────────────────────────
-  //  ORDER STATUS ACTIONS — ke Supabase
+  //  ORDER STATUS ACTIONS
   // ─────────────────────────────────────────
   const cancelOrder = useCallback(async (orderId) => {
     const { error } = await supabase.from('orders').delete().eq('id', orderId)
@@ -348,19 +369,36 @@ export function useStore() {
   }, [currentUser])
 
   // ─────────────────────────────────────────
-  //  ADDRESS ACTIONS
+  //  ADDRESS ACTIONS — tersimpan ke Supabase
   // ─────────────────────────────────────────
-  const saveAddress = useCallback((formData) => {
-    const newAddr = { id: genId("a"), ...formData };
-    setAddresses((prev) => [...prev, newAddr]);
+  const saveAddress = useCallback(async (formData) => {
+    if (!currentUser) return null;
+
+    const newAddr = {
+      id:      genId("a"),
+      user_id: currentUser.id,
+      name:    formData.name,
+      phone:   formData.phone,
+      street:  formData.street,
+      city:    formData.city,
+      postal:  formData.postal,
+      prov:    formData.prov,
+    };
+
+    const { error } = await supabase.from('addresses').insert(newAddr);
+    if (error) { console.error('Gagal simpan alamat:', error); return null; }
+
+    setAddresses(prev => [...prev, newAddr]);
     setSelectedAddressId(newAddr.id);
     return newAddr;
-  }, []);
+  }, [currentUser]);
 
-  const deleteAddress = useCallback((id) => {
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
-    setSelectedAddressId((prev) => (prev === id ? null : prev));
-  }, []);
+  const deleteAddress = useCallback(async (id) => {
+    const { error } = await supabase.from('addresses').delete().eq('id', id).eq('user_id', currentUser?.id);
+    if (error) { console.error('Gagal hapus alamat:', error); return; }
+    setAddresses(prev => prev.filter(a => a.id !== id));
+    setSelectedAddressId(prev => (prev === id ? (addresses.find(a => a.id !== id)?.id || null) : prev));
+  }, [currentUser, addresses]);
 
   // ─────────────────────────────────────────
   //  RETURN
