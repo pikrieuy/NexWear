@@ -1,20 +1,12 @@
 // ─────────────────────────────────────────
 //  src/App.jsx
-//  Root component — router & state provider
 // ─────────────────────────────────────────
 
 import { useState, useCallback, useEffect } from "react";
-
-// Supabase
 import { supabase } from "./supabase";
-
-// Store
 import { useStore } from "./store/useStore";
-
-// Global CSS
 import "./styles/global.css";
 
-// Shared Components
 import StarField  from "./components/StarField";
 import Header     from "./components/Header";
 import Ticker     from "./components/Ticker";
@@ -22,7 +14,6 @@ import CartPanel  from "./components/CartPanel";
 import BottomNav  from "./components/BottomNav";
 import Toast      from "./components/Toast";
 
-// Pages
 import AuthPage    from "./pages/AuthPage";
 import HomePage    from "./pages/HomePage";
 import DetailPage  from "./pages/DetailPage";
@@ -30,28 +21,23 @@ import { FlashSalePage, CategoryPage, SearchPage }          from "./pages/Catego
 import { CartPage, AddressPage, CheckoutPage, SuccessPage } from "./pages/CheckoutPages";
 import { OrdersPage, SellerPage, NotifPage, ChatPage }      from "./pages/OtherPages";
 
-// Data
 import { CATEGORY_MAP } from "./data/products";
 
 export default function App() {
   const store = useStore();
 
   // ── Auth State ──
-  const [user,        setUser]        = useState(null);   // null = belum login
-  const [authLoading, setAuthLoading] = useState(true);   // cek session awal
+  const [user,        setUser]        = useState(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Cek session saat app pertama dibuka
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setAuthLoading(false);
     });
-
-    // Listen perubahan auth (login/logout dari tab lain)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
@@ -67,24 +53,18 @@ export default function App() {
     setTimeout(() => setGlobalToast(""), 2500);
   };
 
-  // ── Navigate ──
   const navigate = useCallback((page, param) => {
-    if (page === "cart_panel") {
-      setCartPanelOpen(true);
-      return;
-    }
+    if (page === "cart_panel") { setCartPanelOpen(true); return; }
     window.scrollTo({ top: 0, behavior: "smooth" });
     setCurrentPage(page);
     setPageParam(param || null);
   }, []);
 
-  // ── Add to cart dengan toast ──
   const handleAddCart = useCallback((product) => {
     store.addToCart(product);
     showToast(`✓ ${product.name} ditambahkan ke keranjang!`);
   }, [store]);
 
-  // ── Logout ──
   const handleLogout = async () => {
     await supabase.auth.signOut();
     setUser(null);
@@ -92,14 +72,12 @@ export default function App() {
     showToast("✓ Berhasil logout!");
   };
 
-  // ── Common props ──
   const commonProps = {
     navigate,
     allProducts: store.allProducts,
     onAddCart:   handleAddCart,
   };
 
-  // ── Render active page ──
   const renderPage = () => {
     if (CATEGORY_MAP[currentPage]) {
       return <CategoryPage catKey={currentPage} {...commonProps} />;
@@ -173,7 +151,8 @@ export default function App() {
         return (
           <OrdersPage
             orders={store.orders}
-            setOrders={store.setOrders}
+            cancelOrder={store.cancelOrder}      // ← FIX: ganti setOrders
+            completeOrder={store.completeOrder}  // ← FIX: tambah completeOrder
             navigate={navigate}
           />
         );
@@ -186,6 +165,7 @@ export default function App() {
             navigate={navigate}
             saveSellerProduct={store.saveSellerProduct}
             deleteSellerProduct={store.deleteSellerProduct}
+            currentUser={store.currentUser}      // ← FIX: tambah currentUser
           />
         );
 
@@ -200,26 +180,11 @@ export default function App() {
     }
   };
 
-  // ── Loading awal (cek session) ──
+  // ── Loading ──
   if (authLoading) {
     return (
-      <div style={{
-        minHeight:      "100vh",
-        background:     "#05020f",
-        display:        "flex",
-        alignItems:     "center",
-        justifyContent: "center",
-        flexDirection:  "column",
-        gap:            16,
-      }}>
-        <div style={{
-          fontFamily:    "'Press Start 2P', monospace",
-          fontSize:      14,
-          color:         "#ff2d78",
-          letterSpacing: 3,
-          textShadow:    "0 0 20px rgba(255,45,120,0.5)",
-          animation:     "pulse 1.5s ease-in-out infinite",
-        }}>
+      <div style={{ minHeight: "100vh", background: "#05020f", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
+        <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: "#ff2d78", letterSpacing: 3, textShadow: "0 0 20px rgba(255,45,120,0.5)", animation: "pulse 1.5s ease-in-out infinite" }}>
           NOVASWIM
         </div>
         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 2 }}>
@@ -229,7 +194,7 @@ export default function App() {
     );
   }
 
-  // ── Belum login → tampil AuthPage ──
+  // ── Belum login ──
   if (!user) {
     return (
       <>
@@ -239,7 +204,7 @@ export default function App() {
     );
   }
 
-  // ── Sudah login → tampil app normal ──
+  // ── Sudah login ──
   return (
     <div style={{ minHeight: "100vh", position: "relative", zIndex: 1 }}>
       <StarField />
@@ -257,11 +222,7 @@ export default function App() {
 
       <Ticker />
 
-      <main style={{
-        position: "relative", zIndex: 1,
-        maxWidth:  1300, margin: "0 auto",
-        padding:   "0 0 40px",
-      }}>
+      <main style={{ position: "relative", zIndex: 1, maxWidth: 1300, margin: "0 auto", padding: "0 0 40px" }}>
         {renderPage()}
       </main>
 

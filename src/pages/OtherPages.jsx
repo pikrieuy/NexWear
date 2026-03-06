@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────
 //  src/pages/OtherPages.jsx
-//  OrdersPage + SellerPage + NotifPage + ChatPage
 // ─────────────────────────────────────────
 import { useState } from "react";
 import { fmt } from "../utils";
@@ -8,28 +7,24 @@ import { backBtnStyle } from "../styles/shared";
 import ProductFormModal from "../components/ProductFormModal";
 import Toast from "../components/Toast";
 
+const STATUS_STYLE = {
+  Dikemas:  { bg: "rgba(255,229,0,0.15)", color: "var(--yellow)", border: "rgba(255,229,0,0.3)" },
+  Dikirim:  { bg: "rgba(0,245,255,0.1)",  color: "var(--cyan)",   border: "rgba(0,245,255,0.3)" },
+  Selesai:  { bg: "rgba(0,200,100,0.1)",  color: "#00c864",       border: "rgba(0,200,100,0.3)" },
+  diproses: { bg: "rgba(255,229,0,0.15)", color: "var(--yellow)", border: "rgba(255,229,0,0.3)" },
+  dikirim:  { bg: "rgba(0,245,255,0.1)",  color: "var(--cyan)",   border: "rgba(0,245,255,0.3)" },
+  selesai:  { bg: "rgba(0,200,100,0.1)",  color: "#00c864",       border: "rgba(0,200,100,0.3)" },
+};
+
 // ─────────────────────────────────────────
 //  OrdersPage
 // ─────────────────────────────────────────
-const STATUS_STYLE = {
-  Dikemas:  { bg: "rgba(255,229,0,0.15)", color: "var(--yellow)", border: "rgba(255,229,0,0.3)"  },
-  Dikirim:  { bg: "rgba(0,245,255,0.1)",  color: "var(--cyan)",   border: "rgba(0,245,255,0.3)"  },
-  Selesai:  { bg: "rgba(0,200,100,0.1)",  color: "#00c864",       border: "rgba(0,200,100,0.3)"  },
-  // fallback lowercase
-  diproses: { bg: "rgba(255,229,0,0.15)", color: "var(--yellow)", border: "rgba(255,229,0,0.3)"  },
-  dikirim:  { bg: "rgba(0,245,255,0.1)",  color: "var(--cyan)",   border: "rgba(0,245,255,0.3)"  },
-  selesai:  { bg: "rgba(0,200,100,0.1)",  color: "#00c864",       border: "rgba(0,200,100,0.3)"  },
-};
-
-export function OrdersPage({ orders, setOrders, navigate }) {
+export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
   const [filter, setFilter] = useState("all");
 
   const filtered = filter === "all"
     ? orders
     : orders.filter((o) => (o.status || "").toLowerCase() === filter.toLowerCase());
-
-  const cancelOrder   = (id) => setOrders((prev) => prev.filter((o) => o.id !== id));
-  const completeOrder = (id) => setOrders((prev) => prev.map((o) => o.id === id ? { ...o, status: "Selesai" } : o));
 
   return (
     <div className="page-anim">
@@ -38,6 +33,7 @@ export function OrdersPage({ orders, setOrders, navigate }) {
         LACAK <span style={{ color: "var(--pink)" }}>PESANAN</span>
       </div>
 
+      {/* Filter Tabs */}
       <div style={{ display: "flex", gap: 0, margin: "0 12px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         {[{ k: "all", l: "SEMUA" }, { k: "Dikemas", l: "DIKEMAS" }, { k: "Dikirim", l: "DIKIRIM" }, { k: "Selesai", l: "SELESAI" }].map((t) => (
           <div key={t.k} onClick={() => setFilter(t.k)}
@@ -53,35 +49,68 @@ export function OrdersPage({ orders, setOrders, navigate }) {
               Belum ada pesanan {filter !== "all" ? filter : ""}.
             </div>
           : [...filtered].map((o) => {
-            // FIX: Supabase pakai order_items, bukan items
             const items = o.order_items || o.items || [];
-            const sc = STATUS_STYLE[o.status] || STATUS_STYLE.diproses;
+            const sc = STATUS_STYLE[o.status] || STATUS_STYLE.Dikemas;
             return (
               <div key={o.id} style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 16 }}>
+                {/* Header */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, paddingBottom: 10, borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
-                  <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, color: "var(--yellow)" }}>ORDER #{String(o.id).slice(0, 8).toUpperCase()}</div>
-                  <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, padding: "4px 10px", background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>{(o.status || "DIKEMAS").toUpperCase()}</div>
+                  <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, color: "var(--yellow)" }}>
+                    ORDER #{String(o.id).slice(0, 8).toUpperCase()}
+                  </div>
+                  <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, padding: "4px 10px", background: sc.bg, color: sc.color, border: `1px solid ${sc.border}` }}>
+                    {(o.status || "DIKEMAS").toUpperCase()}
+                  </div>
                 </div>
+
+                {/* Item Thumbnails */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                   {items.slice(0, 3).map((ci, i) => (
-                    <div key={i} style={{ width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, border: "1px solid rgba(255,255,255,0.07)", background: ci.bg || "#0a0519" }}>{ci.emoji || "🛍"}</div>
+                    <div key={i} style={{ width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, border: "1px solid rgba(255,255,255,0.07)", background: ci.bg || "#0a0519" }}>
+                      {ci.emoji || "🛍"}
+                    </div>
                   ))}
                   {items.length > 3 && (
-                    <div style={{ width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, border: "1px solid rgba(255,255,255,0.07)", background: "#0a0519", color: "rgba(255,255,255,0.4)" }}>+{items.length - 3}</div>
+                    <div style={{ width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, border: "1px solid rgba(255,255,255,0.07)", background: "#0a0519", color: "rgba(255,255,255,0.4)" }}>
+                      +{items.length - 3}
+                    </div>
                   )}
                 </div>
+
+                {/* Item Detail — size & color */}
+                {items.length > 0 && (
+                  <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", gap: 4 }}>
+                    {items.map((ci, i) => (
+                      <div key={i} style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5 }}>
+                        {ci.emoji} {ci.name} · <span style={{ color: "rgba(255,255,255,0.6)" }}>Ukuran: {ci.size}</span> · <span style={{ color: "rgba(255,255,255,0.6)" }}>Warna: {ci.color}</span> · x{ci.qty}
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Footer */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
                     <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{o.date} · {items.length} produk</div>
                     <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 700, color: "var(--yellow)" }}>Rp {fmt(o.total)}</div>
-                    {o.courier && <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>🚚 {o.courier.toUpperCase()} · 💳 {o.payment}</div>}
+                    {o.courier && (
+                      <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+                        🚚 {o.courier.toUpperCase()} · 💳 {o.payment}
+                      </div>
+                    )}
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     {(o.status === "Dikemas" || o.status === "diproses") && (
-                      <button onClick={() => cancelOrder(o.id)} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(0,245,255,0.3)", color: "var(--cyan)", padding: "6px 10px", cursor: "pointer" }}>BATAL</button>
+                      <button onClick={() => cancelOrder(o.id)}
+                        style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(255,45,120,0.4)", color: "var(--pink)", padding: "6px 10px", cursor: "pointer" }}>
+                        BATAL
+                      </button>
                     )}
                     {(o.status === "Dikirim" || o.status === "dikirim") && (
-                      <button onClick={() => completeOrder(o.id)} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(0,245,255,0.3)", color: "var(--cyan)", padding: "6px 10px", cursor: "pointer" }}>SELESAI</button>
+                      <button onClick={() => completeOrder(o.id)}
+                        style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(0,245,255,0.3)", color: "var(--cyan)", padding: "6px 10px", cursor: "pointer" }}>
+                        SELESAI
+                      </button>
                     )}
                   </div>
                 </div>
@@ -97,25 +126,27 @@ export function OrdersPage({ orders, setOrders, navigate }) {
 // ─────────────────────────────────────────
 //  SellerPage
 // ─────────────────────────────────────────
-export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct, deleteSellerProduct }) {
+export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct, deleteSellerProduct, currentUser }) {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [editProduct, setEditProduct] = useState(null);
   const [toast,       setToast]       = useState("");
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
-  const totalRevenue = sellerProducts.reduce((s, p) => s + (p.revenue || 0), 0);
+  // Hanya tampil produk milik user yang login
+  const myProducts = sellerProducts.filter(p => p.user_id === currentUser?.id);
 
-  // FIX: Supabase pakai order_items, bukan items — pakai optional chaining untuk aman
+  const totalRevenue = myProducts.reduce((s, p) => s + (p.revenue || 0), 0);
+
   const totalOrders = orders.filter((o) => {
     const items = o.order_items || o.items || [];
-    return items.some((ci) => sellerProducts.some((sp) => sp.id === ci.productId || sp.id === ci.product_id));
+    return items.some((ci) => myProducts.some((sp) => sp.id === (ci.productId || ci.product_id)));
   }).length;
 
-  const avgRatingVal = sellerProducts.length > 0
-    ? (sellerProducts.reduce((s, p) => {
+  const avgRatingVal = myProducts.length > 0
+    ? (myProducts.reduce((s, p) => {
         const r = p.reviews || [];
         return s + (r.length > 0 ? r.reduce((a, rv) => a + rv.star, 0) / r.length : 0);
-      }, 0) / sellerProducts.length).toFixed(1)
+      }, 0) / myProducts.length).toFixed(1)
     : "-";
 
   const handleSave = (data, editingId) => {
@@ -149,7 +180,7 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
       {/* Stats */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12, margin: "0 12px 24px" }}>
         {[
-          { icon: "📦", val: sellerProducts.length,     label: "PRODUK AKTIF" },
+          { icon: "📦", val: myProducts.length,        label: "PRODUK AKTIF" },
           { icon: "🛒", val: totalOrders,               label: "TOTAL ORDER"  },
           { icon: "💰", val: `Rp ${fmt(totalRevenue)}`, label: "PENDAPATAN"   },
           { icon: "⭐", val: avgRatingVal,               label: "RATING TOKO"  },
@@ -165,17 +196,22 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
       {/* Product List */}
       <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: 1, margin: "0 12px 12px" }}>PRODUK SAYA</div>
       <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 10 }}>
-        {sellerProducts.length === 0
+        {myProducts.length === 0
           ? <div style={{ textAlign: "center", padding: 40, color: "rgba(255,255,255,0.3)", fontFamily: "'Press Start 2P',monospace", fontSize: 7, letterSpacing: 1, lineHeight: 2, border: "1px dashed rgba(255,255,255,0.1)" }}>
               Belum ada produk. Klik "+ TAMBAH PRODUK" untuk mulai berjualan!
             </div>
-          : sellerProducts.map((p) => (
+          : myProducts.map((p) => (
             <div key={p.id} style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 16, display: "flex", alignItems: "center", gap: 16 }}>
               <div style={{ width: 70, height: 70, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, border: "1px solid rgba(255,255,255,0.07)", background: p.bg, flexShrink: 0 }}>{p.emoji}</div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", textTransform: "uppercase", marginBottom: 4 }}>{p.name}</div>
                 <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900, color: "var(--yellow)", marginBottom: 4 }}>Rp {fmt(p.price)}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: 1 }}>Stok: {p.stock || 0} · Terjual: {p.sold || 0} · {p.cat}</div>
+                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: 1 }}>
+                  Stok: {p.stock ?? 0} · Terjual: {p.sold || 0} · {p.cat}
+                </div>
+                {p.reviews?.length > 0 && (
+                  <div style={{ fontSize: 9, color: "var(--yellow)", marginTop: 2 }}>⭐ {(p.reviews.reduce((a, r) => a + r.star, 0) / p.reviews.length).toFixed(1)} ({p.reviews.length} ulasan)</div>
+                )}
                 {p.bonus?.length > 0 && (
                   <div style={{ display: "inline-block", background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.3)", color: "var(--pink)", fontFamily: "'Press Start 2P',monospace", fontSize: 6, padding: "2px 6px", marginTop: 4 }}>🎁 {p.bonus.length} BONUS</div>
                 )}
@@ -197,9 +233,9 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
 // ─────────────────────────────────────────
 export function NotifPage({ navigate }) {
   const notifs = [
-    { icon: "⚡", title: "Flash Sale dimulai!",  sub: "Nebula Bikini Set diskon 40% selama 8 jam"      },
-    { icon: "📦", title: "Pesanan dikirim",      sub: "ORDER sudah dalam perjalanan"                    },
-    { icon: "🎁", title: "Voucher baru untukmu", sub: "Gunakan kode NOVA20 untuk diskon 20%"            },
+    { icon: "⚡", title: "Flash Sale dimulai!",  sub: "Nebula Bikini Set diskon 40% selama 8 jam"   },
+    { icon: "📦", title: "Pesanan dikirim",      sub: "ORDER sudah dalam perjalanan"                 },
+    { icon: "🎁", title: "Voucher baru untukmu", sub: "Gunakan kode NOVA20 untuk diskon 20%"         },
   ];
   return (
     <div className="page-anim">

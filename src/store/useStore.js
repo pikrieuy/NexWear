@@ -18,68 +18,66 @@ export function useStore() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setCurrentUser(session?.user ?? null);
     });
-
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setCurrentUser(session?.user ?? null);
     });
-
     return () => subscription.unsubscribe();
   }, []);
 
   // ─────────────────────────────────────────
-  //  PRODUCTS (publik — semua user bisa lihat)
+  //  PRODUCTS
   // ─────────────────────────────────────────
   const [products, setProducts]             = useState([]);
   const [sellerProducts, setSellerProducts] = useState([]);
 
   useEffect(() => {
-    supabase
-      .from('products')
-      .select('*')
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('❌ Supabase error:', error)
-        } else {
-          const mapped = data.map(p => ({
-            ...p,
-            id:         'p' + p.id,
-            oldPrice:   p.old_price,
-            desc:       p.description,
-            badgeClass: p.badge_class,
-            badgeText:  p.badge_text,
-            reviews:    [],
-            bonus:      [],
-          }))
-          setProducts(mapped)
-        }
-      })
+    supabase.from('products').select('*').then(({ data, error }) => {
+      if (error) { console.error('❌ Products error:', error); return; }
+      setProducts(data.map(p => ({
+        ...p,
+        id:         'p' + p.id,
+        oldPrice:   p.old_price,
+        desc:       p.description,
+        badgeClass: p.badge_class,
+        badgeText:  p.badge_text,
+        reviews:    [],
+        bonus:      [],
+        stock:      p.stock ?? 100,
+      })))
+    })
   }, [])
 
-  // ─────────────────────────────────────────
-  //  SELLER PRODUCTS (per user)
-  // ─────────────────────────────────────────
   useEffect(() => {
-    supabase
-      .from('seller_products')
-      .select('*')
-      // tidak ada filter user_id — semua produk tampil di toko
-      .then(({ data, error }) => {
-        if (error) {
-          console.error('❌ Seller products error:', error)
-        } else {
-          const mapped = (data || []).map(p => ({
-            ...p,
-            oldPrice:   p.old_price,
-            desc:       p.description,
-            badgeClass: p.badge_class,
-            badgeText:  p.badge_text,
-            bonus:      p.bonus || [],
-            reviews:    [],
-          }))
-          setSellerProducts(mapped)
-        }
-      })
+    supabase.from('seller_products').select('*').then(({ data, error }) => {
+      if (error) { console.error('❌ Seller products error:', error); return; }
+      setSellerProducts((data || []).map(p => ({
+        ...p,
+        oldPrice:   p.old_price,
+        desc:       p.description,
+        badgeClass: p.badge_class,
+        badgeText:  p.badge_text,
+        bonus:      p.bonus || [],
+        reviews:    [],
+        stock:      p.stock ?? 0,
+      })))
+    })
   }, [currentUser])
+
+  // Load reviews dan distribute ke produk
+  useEffect(() => {
+    supabase.from('reviews').select('*').order('created_at', { ascending: false }).then(({ data, error }) => {
+      if (error) { console.error('❌ Reviews error:', error); return; }
+      const reviews = data || [];
+      setProducts(prev => prev.map(p => ({
+        ...p,
+        reviews: reviews.filter(r => r.product_id === p.id),
+      })));
+      setSellerProducts(prev => prev.map(p => ({
+        ...p,
+        reviews: reviews.filter(r => r.product_id === p.id),
+      })));
+    })
+  }, [])
 
   // ─────────────────────────────────────────
   //  CART
@@ -145,20 +143,17 @@ export function useStore() {
           ci.id === existing.id ? { ...ci, qty: ci.qty + qty } : ci
         );
       }
-      return [
-        ...prev,
-        {
-          id:        genId("ci"),
-          productId: product.id,
-          name:      product.name,
-          emoji:     product.emoji,
-          bg:        product.bg,
-          price:     product.price,
-          size,
-          color,
-          qty,
-        },
-      ];
+      return [...prev, {
+        id:        genId("ci"),
+        productId: product.id,
+        name:      product.name,
+        emoji:     product.emoji,
+        bg:        product.bg,
+        price:     product.price,
+        size,
+        color,
+        qty,
+      }];
     });
   }, []);
 
@@ -179,21 +174,15 @@ export function useStore() {
   // ─────────────────────────────────────────
   //  COUPON
   // ─────────────────────────────────────────
-  const applyCoupon = useCallback(
-    (code) => {
-      const rate = COUPONS[code.toUpperCase()] || 0;
-      if (rate) {
-        setCouponDiscount(Math.floor(cartTotal * rate));
-        return true;
-      }
-      setCouponDiscount(0);
-      return false;
-    },
-    [cartTotal]
-  );
+  const applyCoupon = useCallback((code) => {
+    const rate = COUPONS[code.toUpperCase()] || 0;
+    if (rate) { setCouponDiscount(Math.floor(cartTotal * rate)); return true; }
+    setCouponDiscount(0);
+    return false;
+  }, [cartTotal]);
 
   // ─────────────────────────────────────────
-  //  ORDER
+  //  ORDER — + update sold & stock otomatis
   // ─────────────────────────────────────────
   const placeOrder = useCallback(async (orderData) => {
     const newOrder = {
@@ -203,43 +192,107 @@ export function useStore() {
       courier: orderData.courier,
       payment: orderData.payment,
       address: orderData.address,
-      user_id: currentUser?.id,  // ← per user
+      user_id: currentUser?.id,
     }
 
     const { data, error } = await supabase
-      .from('orders')
-      .insert(newOrder)
-      .select()
-      .single()
+      .from('orders').insert(newOrder).select().single()
+    if (error) { console.error('Gagal simpan order:', error); return; }
 
-    if (error) { console.error('Gagal simpan order:', error); return }
-
+    // Simpan order items (dengan bg untuk tampilan)
     const items = cart.map(item => ({
       order_id:   data.id,
-      product_id: String(item.id),
+      product_id: String(item.productId || item.id),
       name:       item.name,
       price:      item.price,
       qty:        item.qty,
       size:       item.size,
       color:      item.color,
       emoji:      item.emoji,
+      bg:         item.bg || '#0a0519',
     }))
-
     await supabase.from('order_items').insert(items)
 
+    // Update sold & stock untuk setiap produk yang dibeli
+    for (const item of cart) {
+      const pid = String(item.productId || item.id);
+      const qtyBought = item.qty;
+
+      if (pid.startsWith('p')) {
+        // Regular product
+        const numericId = parseInt(pid.replace('p', ''));
+        const prod = products.find(p => p.id === pid);
+        if (prod) {
+          const newSold  = (parseInt(prod.sold) || 0) + qtyBought;
+          const newStock = Math.max(0, (prod.stock ?? 100) - qtyBought);
+          await supabase.from('products').update({ sold: String(newSold), stock: newStock }).eq('id', numericId);
+          setProducts(prev => prev.map(p =>
+            p.id === pid ? { ...p, sold: String(newSold), stock: newStock } : p
+          ));
+        }
+      } else {
+        // Seller product
+        const prod = sellerProducts.find(p => p.id === pid);
+        if (prod) {
+          const newSold    = (parseInt(prod.sold) || 0) + qtyBought;
+          const newStock   = Math.max(0, (prod.stock ?? 0) - qtyBought);
+          const newRevenue = (prod.revenue || 0) + (item.price * qtyBought);
+          await supabase.from('seller_products').update({ sold: String(newSold), stock: newStock, revenue: newRevenue }).eq('id', pid);
+          setSellerProducts(prev => prev.map(p =>
+            p.id === pid ? { ...p, sold: String(newSold), stock: newStock, revenue: newRevenue } : p
+          ));
+        }
+      }
+    }
+
     setOrders(prev => [{ ...data, order_items: items }, ...prev])
-    setCart([])
-  }, [cart, currentUser])
+    clearCart();
+    setCouponDiscount(0);
+    setShippingCost(0);
+  }, [cart, currentUser, products, sellerProducts, clearCart])
 
   // ─────────────────────────────────────────
-  //  REVIEWS
+  //  ORDER STATUS ACTIONS — ke Supabase
   // ─────────────────────────────────────────
-  const addReview = useCallback((productId, review) => {
-    setSellerProducts((prev) =>
-      prev.map((p) =>
-        p.id === productId ? { ...p, reviews: [...p.reviews, review] } : p
-      )
-    );
+  const cancelOrder = useCallback(async (orderId) => {
+    const { error } = await supabase.from('orders').delete().eq('id', orderId)
+    if (error) { console.error('Gagal cancel order:', error); return; }
+    setOrders(prev => prev.filter(o => o.id !== orderId));
+  }, []);
+
+  const completeOrder = useCallback(async (orderId) => {
+    const { error } = await supabase.from('orders').update({ status: 'Selesai' }).eq('id', orderId)
+    if (error) { console.error('Gagal complete order:', error); return; }
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, status: 'Selesai' } : o));
+  }, []);
+
+  // ─────────────────────────────────────────
+  //  REVIEWS — simpan ke Supabase
+  // ─────────────────────────────────────────
+  const addReview = useCallback(async (productId, review) => {
+    const record = {
+      product_id:   productId,
+      product_type: String(productId).startsWith('p') ? 'regular' : 'seller',
+      author:       review.author,
+      star:         review.star,
+      text:         review.text,
+      date:         review.date,
+    }
+
+    const { data, error } = await supabase.from('reviews').insert(record).select().single()
+    if (error) { console.error('Gagal simpan review:', error); return; }
+
+    const newReview = { ...record, id: data.id };
+
+    if (String(productId).startsWith('p')) {
+      setProducts(prev => prev.map(p =>
+        p.id === productId ? { ...p, reviews: [newReview, ...p.reviews] } : p
+      ));
+    } else {
+      setSellerProducts(prev => prev.map(p =>
+        p.id === productId ? { ...p, reviews: [newReview, ...p.reviews] } : p
+      ));
+    }
   }, []);
 
   // ─────────────────────────────────────────
@@ -263,26 +316,20 @@ export function useStore() {
       stock:       data.stock       || 0,
       revenue:     data.revenue     || 0,
       bonus:       data.bonus       || [],
-      user_id:     currentUser?.id, // ← per user
+      user_id:     currentUser?.id,
     }
 
     if (editingId) {
-      const { error } = await supabase
-        .from('seller_products')
-        .update(record)
-        .eq('id', editingId)
-        .eq('user_id', currentUser?.id)
-      if (error) { console.error('Gagal update produk:', error); return }
+      const { error } = await supabase.from('seller_products').update(record).eq('id', editingId).eq('user_id', currentUser?.id)
+      if (error) { console.error('Gagal update produk:', error); return; }
       setSellerProducts(prev => prev.map(p =>
         p.id === editingId
           ? { ...p, ...data, oldPrice: record.old_price, desc: record.description, badgeClass: record.badge_class, badgeText: record.badge_text }
           : p
       ))
     } else {
-      const { error } = await supabase
-        .from('seller_products')
-        .insert(record)
-      if (error) { console.error('Gagal tambah produk:', error); return }
+      const { error } = await supabase.from('seller_products').insert(record)
+      if (error) { console.error('Gagal tambah produk:', error); return; }
       setSellerProducts(prev => [...prev, {
         ...record,
         oldPrice:   record.old_price,
@@ -295,12 +342,8 @@ export function useStore() {
   }, [currentUser])
 
   const deleteSellerProduct = useCallback(async (id) => {
-    const { error } = await supabase
-      .from('seller_products')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', currentUser?.id)
-    if (error) { console.error('Gagal hapus produk:', error); return }
+    const { error } = await supabase.from('seller_products').delete().eq('id', id).eq('user_id', currentUser?.id)
+    if (error) { console.error('Gagal hapus produk:', error); return; }
     setSellerProducts(prev => prev.filter(p => p.id !== id))
   }, [currentUser])
 
@@ -343,6 +386,8 @@ export function useStore() {
     clearCart,
     applyCoupon,
     placeOrder,
+    cancelOrder,
+    completeOrder,
     addReview,
     saveSellerProduct,
     deleteSellerProduct,
