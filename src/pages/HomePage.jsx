@@ -1,12 +1,13 @@
 // ─────────────────────────────────────────
 //  src/pages/HomePage.jsx
-//  Halaman utama: hero, flash sale, rekomendasi
+//  Halaman utama: hero, kategori, rekomendasi
 // ─────────────────────────────────────────
 
 import { useState, useEffect, useMemo } from "react";
 import { CAT_ITEMS } from "../data/products";
 import { fmt, discPct } from "../utils";
 import ProductGrid from "../components/ProductGrid";
+import SkeletonGrid from "../components/SkeletonGrid";
 
 /* ── Countdown Hook ── */
 function useCountdown(initialSecs) {
@@ -23,9 +24,9 @@ function useCountdown(initialSecs) {
 
 /* ── Slides Data ── */
 const SLIDES = [
-  { bg:"linear-gradient(135deg,#05020f,#2a0060,#3d0020)", eye:"// NEW ARRIVAL 2077 //", title:"NEBULA\nCOLLECTION", sub:"SWIMWEAR · PIXEL ART · SPACE TECH", cta:"BELANJA SEKARANG →", ctaPage:"newarrivals", titleColor:"#fff", ctaBg:"var(--pink)", deco:"🌸" },
-  { bg:"linear-gradient(135deg,#001530,#003a60,#001a40)", eye:"// FLASH SALE 24 JAM //", title:"DISKON 40%",           sub:"OCEAN BYTE · GALAXY SERIES",         cta:"KLAIM DISKON →",     ctaPage:"flash",       titleColor:"var(--cyan)",   ctaBg:"var(--cyan)",   deco:"🌊" },
-  { bg:"linear-gradient(135deg,#100020,#3d0060,#200050)", eye:"// CYBER EDITION //",    title:"HOLOGRAM\nSET",         sub:"LIMITED · EXCLUSIVE · PIXEL ART",   cta:"LIHAT KOLEKSI →",   ctaPage:"galaxy",      titleColor:"var(--purple)", ctaBg:"var(--purple)", deco:"🦋" },
+  { bg:"linear-gradient(135deg,#05020f,#2a0060,#3d0020)", eye:"// NEW ARRIVAL 2077 //", title:"NEXWEAR\nCOLLECTION", sub:"FASHION · PIXEL ART · FUTURE STYLE", cta:"BELANJA SEKARANG →", ctaPage:"newarrivals", titleColor:"#fff", ctaBg:"var(--pink)", deco:"✨" },
+  { bg:"linear-gradient(135deg,#001530,#003a60,#001a40)", eye:"// PROMO SPESIAL //",    title:"DISKON 40%",            sub:"OUT WEAR · CLOTHING · ACCESSORIES",  cta:"KLAIM DISKON →",    ctaPage:"sale",        titleColor:"var(--cyan)",   ctaBg:"var(--cyan)",   deco:"🛍️" },
+  { bg:"linear-gradient(135deg,#100020,#3d0060,#200050)", eye:"// CYBER EDITION //",   title:"CYBER\nFASHION",        sub:"LIMITED · EXCLUSIVE · PIXEL STYLE",  cta:"LIHAT KOLEKSI →",  ctaPage:"clothing",    titleColor:"var(--purple)", ctaBg:"var(--purple)", deco:"🦋" },
 ];
 
 export default function HomePage({ allProducts, navigate, onAddCart }) {
@@ -39,7 +40,6 @@ export default function HomePage({ allProducts, navigate, onAddCart }) {
     return () => clearInterval(id);
   }, []);
 
-  const flashProducts = allProducts.filter((p) => p.flash);
 
   const filteredProducts = useMemo(() => {
     let list = [...allProducts];
@@ -64,8 +64,6 @@ export default function HomePage({ allProducts, navigate, onAddCart }) {
       {/* ── Mini Banners ── */}
       <MiniBanners />
 
-      {/* ── Flash Sale ── */}
-      <FlashSection flashProducts={flashProducts} navigate={navigate} h={h} m={m} s={s} />
 
       {/* ── Rekomendasi ── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 12px 8px" }}>
@@ -79,7 +77,10 @@ export default function HomePage({ allProducts, navigate, onAddCart }) {
       <FilterTabs filter={filter} setFilter={setFilter} />
 
       {/* Product Grid */}
-      <ProductGrid products={filteredProducts} navigate={navigate} onAddCart={onAddCart} />
+      {filteredProducts.length === 0
+        ? <SkeletonGrid count={10} />
+        : <ProductGrid products={filteredProducts} navigate={navigate} onAddCart={onAddCart} />
+      }
 
       {/* Footer */}
       <SiteFooter navigate={navigate} />
@@ -113,7 +114,7 @@ function HeroBanner({ cur, slide, setSlide, navigate }) {
       </div>
       {/* Side Panels */}
       <div className="hero-side" style={{ display: "flex", flexDirection: "column", gap: 4, width: 180, flexShrink: 0 }}>
-        {[{ bg: "linear-gradient(135deg,#1a0040,#3d0060)", icon: "🚀", label: "DAILY DEALS", sub: "s.d. 60% OFF", page: "flash" },
+        {[{ bg: "linear-gradient(135deg,#1a0040,#3d0060)", icon: "🔥", label: "NEW ARRIVALS", sub: "TERBARU", page: "newarrivals" },
           { bg: "linear-gradient(135deg,#001a30,#003060)", icon: "🎁", label: "BUNDLE SET",  sub: "HEMAT LEBIH",  page: "bundle" }].map((sp) => (
           <div key={sp.page} onClick={() => navigate(sp.page)} style={{ flex: 1, position: "relative", overflow: "hidden", cursor: "pointer", border: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 6 }}>
             <div style={{ position: "absolute", inset: 0, background: sp.bg }} />
@@ -129,11 +130,14 @@ function HeroBanner({ cur, slide, setSlide, navigate }) {
 
 function CategoryStrip({ navigate }) {
   return (
-    <div className="cat-strip" style={{ display: "grid", gridTemplateColumns: "repeat(10,1fr)", margin: "12px 12px 0", background: "var(--card)", border: "1px solid rgba(0,245,255,0.12)", padding: "16px 8px" }}>
+    <div className="cat-strip" style={{ display: "grid", gridTemplateColumns: "repeat(9,1fr)", margin: "12px 12px 0", background: "var(--card)", border: "1px solid rgba(0,245,255,0.12)", padding: "16px 8px" }}>
       {CAT_ITEMS.map((c, i) => (
-        <div key={i} className="cat-item" onClick={() => c.page && navigate(c.page)} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, cursor: c.page ? "pointer" : "default", padding: "8px 4px" }}>
-          <span className="cat-icon" style={{ fontSize: 28, filter: "drop-shadow(0 0 6px rgba(0,245,255,0.4))" }}>{c.icon}</span>
-          <span className="cat-label" style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 9, color: "rgba(255,255,255,0.6)", textAlign: "center", letterSpacing: 1 }}>{c.label}</span>
+        <div key={i} className="cat-item" onClick={() => c.page && navigate(c.page)}
+          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, cursor: c.page ? "pointer" : "default", padding: "8px 4px" }}>
+          <div style={{ width: 48, height: 48, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%", background: "rgba(0,245,255,0.07)", border: "1px solid rgba(0,245,255,0.15)", transition: "all 0.2s" }}>
+            <span className="cat-icon" style={{ fontSize: 22, filter: "drop-shadow(0 0 6px rgba(0,245,255,0.5))" }}>{c.icon}</span>
+          </div>
+          <span className="cat-label" style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 13, color: "rgba(255,255,255,0.7)", textAlign: "center", letterSpacing: 0.5 }}>{c.label}</span>
         </div>
       ))}
     </div>
@@ -142,74 +146,25 @@ function CategoryStrip({ navigate }) {
 
 function MiniBanners() {
   const banners = [
-    { bg: "linear-gradient(135deg,#1a0040,#ff2d78)", icon: "🎯", label: "CASHBACK 25%" },
-    { bg: "linear-gradient(135deg,#001a40,#00f5ff)", icon: "🚀", label: "FREE ONGKIR"  },
-    { bg: "linear-gradient(135deg,#200050,#b400ff)", icon: "⚡", label: "FLASH SALE"   },
-    { bg: "linear-gradient(135deg,#1a1000,#ffe500)", icon: "🏆", label: "TOP RATED"    },
+    { bg: "linear-gradient(135deg,#1a0040,#ff2d78)", icon: "🎯", label: "CASHBACK 25%",  sub: "Min. Belanja 200rb" },
+    { bg: "linear-gradient(135deg,#001a40,#00f5ff)", icon: "🚀", label: "FREE ONGKIR",   sub: "Setiap Hari"       },
+    { bg: "linear-gradient(135deg,#200050,#b400ff)", icon: "🏷️", label: "FLASH SALE",    sub: "Tiap Jam 12 & 20" },
+    { bg: "linear-gradient(135deg,#1a1000,#ffe500)", icon: "🏆", label: "TOP BRAND",     sub: "Produk Terpilih"  },
   ];
   return (
     <div className="mini-banners" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, margin: "12px 12px 0" }}>
       {banners.map((b, i) => (
-        <div key={i} style={{ position: "relative", height: 80, border: "1px solid rgba(255,255,255,0.06)", overflow: "hidden", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div key={i} style={{ position: "relative", height: 90, border: "1px solid rgba(255,255,255,0.06)", overflow: "hidden", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", transition: "transform 0.2s" }}
+          onMouseEnter={e => e.currentTarget.style.transform = "scale(1.02)"}
+          onMouseLeave={e => e.currentTarget.style.transform = "scale(1)"}>
           <div style={{ position: "absolute", inset: 0, background: b.bg }} />
           <div style={{ position: "relative", zIndex: 1, textAlign: "center" }}>
-            <span style={{ fontSize: 24, display: "block", marginBottom: 4 }}>{b.icon}</span>
-            <span style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, color: "#fff", letterSpacing: 1, textShadow: "0 0 8px rgba(0,0,0,0.8)" }}>{b.label}</span>
+            <span style={{ fontSize: 26, display: "block", marginBottom: 4 }}>{b.icon}</span>
+            <span style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, color: "#fff", letterSpacing: 1, textShadow: "0 0 8px rgba(0,0,0,0.8)", display: "block" }}>{b.label}</span>
+            <span style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 9, color: "rgba(255,255,255,0.55)", letterSpacing: 1, marginTop: 3, display: "block" }}>{b.sub}</span>
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function FlashSection({ flashProducts, navigate, h, m, s }) {
-  return (
-    <div style={{ margin: "16px 12px 0" }}>
-      {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, background: "var(--card)", border: "1px solid rgba(255,45,120,0.3)", padding: "12px 20px", marginBottom: 2 }}>
-        <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 10, color: "var(--pink)", letterSpacing: 2, display: "flex", alignItems: "center", gap: 8, flex: 1 }}>
-          <span style={{ animation: "float 1s ease-in-out infinite" }}>⚡</span> FLASH SALE
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <span style={{ fontSize: 8, color: "rgba(255,255,255,0.4)", letterSpacing: 1, marginRight: 4 }}>BERAKHIR:</span>
-          {[h, m, s].map((t, i) => (
-            <span key={i} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-              <span style={{ background: "#1a0030", border: "1px solid rgba(255,45,120,0.4)", color: "var(--yellow)", fontFamily: "'Press Start 2P',monospace", fontSize: 11, padding: "4px 8px" }}>{t}</span>
-              {i < 2 && <span style={{ color: "var(--pink)", fontWeight: "bold", fontSize: 14 }}>:</span>}
-            </span>
-          ))}
-        </div>
-        <div onClick={() => navigate("flash")} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 8, color: "var(--cyan)", cursor: "pointer", letterSpacing: 1 }}>LIHAT SEMUA &gt;</div>
-      </div>
-      {/* Flash Cards */}
-      <div className="flash-products" style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2, background: "rgba(255,45,120,0.04)", border: "1px solid rgba(255,45,120,0.15)", borderTop: "none" }}>
-        {flashProducts.map((p) => (
-          <FlashCard key={p.id} product={p} navigate={navigate} />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function FlashCard({ product: p, navigate }) {
-  return (
-    <div className="flash-card" onClick={() => navigate("detail", p.id)} style={{ background: "var(--card)", cursor: "pointer", position: "relative" }}>
-      <div style={{ height: 120, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden" }}>
-        <div style={{ position: "absolute", inset: 0, background: p.bg }} />
-        <span style={{ position: "relative", zIndex: 1, fontSize: 40, animation: "float 3s ease-in-out infinite" }}>{p.emoji}</span>
-      </div>
-      <div style={{ position: "absolute", top: 6, left: 6, background: "var(--yellow)", color: "#000", fontFamily: "'Press Start 2P',monospace", fontSize: 6, padding: "2px 6px", zIndex: 5 }}>
-        {p.oldPrice ? `-${discPct(p.price, p.oldPrice)}%` : "HOT"}
-      </div>
-      <div style={{ padding: 8 }}>
-        <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 7, fontWeight: 700, color: "#fff", marginBottom: 3, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", textTransform: "uppercase" }}>{p.name}</div>
-        {p.oldPrice > 0 && <div style={{ fontSize: 8, color: "rgba(255,255,255,0.25)", textDecoration: "line-through" }}>Rp {fmt(p.oldPrice)}</div>}
-        <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 10, fontWeight: 900, color: "var(--yellow)" }}>Rp {fmt(p.price)}</div>
-        <div style={{ height: 3, background: "rgba(255,255,255,0.1)", margin: "6px 0 3px" }}>
-          <div style={{ height: 3, background: "var(--pink)", width: `${Math.floor(Math.random() * 50 + 40)}%` }} />
-        </div>
-        <div style={{ fontSize: 8, color: "rgba(255,255,255,0.35)", letterSpacing: 1 }}>Terjual {p.sold}</div>
-      </div>
     </div>
   );
 }
@@ -230,11 +185,11 @@ function FilterTabs({ filter, setFilter }) {
           key={tab.k}
           onClick={() => setFilter(tab.k)}
           style={{
-            fontFamily: "'Press Start 2P',monospace", fontSize: 7, padding: "10px 14px",
-            color: filter === tab.k ? "var(--pink)" : "rgba(255,255,255,0.45)",
+            fontFamily: "'Share Tech Mono',monospace", fontSize: 12, padding: "10px 16px",
+            color: filter === tab.k ? "var(--pink)" : "rgba(255,255,255,0.7)",
             cursor: "pointer",
             borderBottom: filter === tab.k ? "2px solid var(--pink)" : "2px solid transparent",
-            whiteSpace: "nowrap", letterSpacing: 1, transition: "all 0.2s",
+            whiteSpace: "nowrap", letterSpacing: 0.5, transition: "all 0.2s",
           }}
         >
           {tab.l}
@@ -246,7 +201,7 @@ function FilterTabs({ filter, setFilter }) {
 
 function SiteFooter({ navigate }) {
   const COLS = [
-    { h: "Kategori",  links: ["Bikini Set", "One Piece", "Bottoms", "Bundle", "Aksesoris"] },
+    { h: "Kategori",  links: ["Out Wear", "Accessory", "Device", "Utility", "Clothing", "Shoes", "Set", "New Arrivals", "Sale"] },
     { h: "Layanan",   links: ["Size Guide", "Lacak Pesanan", "Return & Refund", "Live Chat", "FAQ"] },
     { h: "Ikuti Kami",links: ["Instagram", "TikTok", "Pinterest", "Shopee Official", "Tokopedia"] },
   ];
@@ -254,8 +209,8 @@ function SiteFooter({ navigate }) {
     <footer style={{ margin: "32px 12px 0", background: "var(--card)", border: "1px solid rgba(0,245,255,0.1)", padding: 32 }}>
       <div className="footer-grid" style={{ display: "grid", gridTemplateColumns: "2fr 1fr 1fr 1fr", gap: 32, marginBottom: 24 }}>
         <div>
-          <span style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 14, color: "var(--cyan)", textShadow: "0 0 10px var(--cyan)", display: "block", marginBottom: 12 }}>NOVA<em style={{ color: "var(--pink)", fontStyle: "normal" }}>SWIM</em></span>
-          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", lineHeight: 1.8, letterSpacing: 0.5, marginBottom: 14 }}>Bikini dari masa depan. Dibuat untuk mereka yang berani tampil beda di alam semesta fashion.</p>
+          <span style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 14, color: "var(--cyan)", textShadow: "0 0 10px var(--cyan)", display: "block", marginBottom: 12 }}>NEX<em style={{ color: "var(--pink)", fontStyle: "normal" }}>WEAR</em></span>
+          <p style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", lineHeight: 1.8, letterSpacing: 0.5, marginBottom: 14 }}>Fashion dari masa depan. Dibuat untuk mereka yang berani tampil beda di alam semesta gaya.</p>
           <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
             {["SSL", "VISA", "GOPAY", "OVO", "COD"].map((b) => (
               <span key={b} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.1)", fontFamily: "'Press Start 2P',monospace", fontSize: 6, color: "rgba(255,255,255,0.5)", padding: "4px 8px" }}>{b}</span>
@@ -272,7 +227,7 @@ function SiteFooter({ navigate }) {
         ))}
       </div>
       <div style={{ borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: 16, display: "flex", justifyContent: "space-between", fontSize: 9, color: "rgba(255,255,255,0.25)", letterSpacing: 1 }}>
-        <p>© 2077 NOVASWIM · ALL RIGHTS RESERVED</p>
+        <p>© 2077 NEXWEAR · ALL RIGHTS RESERVED</p>
         <p>POWERED BY PIXEL TECHNOLOGY ⚡</p>
       </div>
     </footer>

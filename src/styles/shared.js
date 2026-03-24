@@ -6,7 +6,7 @@
 
 export const backBtnStyle = {
   fontFamily: "'Press Start 2P', monospace",
-  fontSize: 8,
+  fontSize: 10,
   background: "transparent",
   border: "1px solid rgba(0,245,255,0.3)",
   color: "var(--cyan)",
@@ -20,8 +20,8 @@ export const backBtnStyle = {
 
 export const labelStyle = {
   fontFamily: "'Press Start 2P', monospace",
-  fontSize: 7,
-  color: "rgba(255,255,255,0.4)",
+  fontSize: 9,
+  color: "rgba(255,255,255,0.65)",
   letterSpacing: 2,
   marginBottom: 8,
   textTransform: "uppercase",
@@ -66,8 +66,8 @@ export const formInputStyle = {
 
 export const formLabelStyle = {
   fontFamily: "'Press Start 2P', monospace",
-  fontSize: 6,
-  color: "rgba(255,255,255,0.4)",
+  fontSize: 8,
+  color: "rgba(255,255,255,0.65)",
   letterSpacing: 2,
   textTransform: "uppercase",
   display: "block",
@@ -114,7 +114,7 @@ export const checkoutBtn = {
   display: "block",
   width: "100%",
   fontFamily: "'Press Start 2P', monospace",
-  fontSize: 9,
+  fontSize: 10,
   background: "var(--pink)",
   border: "none",
   color: "#fff",
@@ -126,7 +126,7 @@ export const checkoutBtn = {
 
 export const pressBtnOutline = {
   fontFamily: "'Press Start 2P', monospace",
-  fontSize: 8,
+  fontSize: 10,
   background: "transparent",
   border: "2px solid var(--cyan)",
   color: "var(--cyan)",

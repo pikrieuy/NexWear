@@ -37,7 +37,7 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
       <div style={{ display: "flex", gap: 0, margin: "0 12px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
         {[{ k: "all", l: "SEMUA" }, { k: "Dikemas", l: "DIKEMAS" }, { k: "Dikirim", l: "DIKIRIM" }, { k: "Selesai", l: "SELESAI" }].map((t) => (
           <div key={t.k} onClick={() => setFilter(t.k)}
-            style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, padding: "10px 16px", color: filter === t.k ? "var(--pink)" : "rgba(255,255,255,0.45)", cursor: "pointer", borderBottom: filter === t.k ? "2px solid var(--pink)" : "2px solid transparent", letterSpacing: 1, transition: "all 0.2s" }}>
+            style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, padding: "10px 16px", color: filter === t.k ? "var(--pink)" : "rgba(255,255,255,0.65)", cursor: "pointer", borderBottom: filter === t.k ? "2px solid var(--pink)" : "2px solid transparent", letterSpacing: 1, transition: "all 0.2s" }}>
             {t.l}
           </div>
         ))}
@@ -66,12 +66,16 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
                 {/* Item Thumbnails */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
                   {items.slice(0, 3).map((ci, i) => (
-                    <div key={i} style={{ width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22, border: "1px solid rgba(255,255,255,0.07)", background: ci.bg || "#0a0519" }}>
-                      {ci.emoji || "🛍"}
+                    <div key={i} style={{ width: 56, height: 56, position: "relative", border: "1px solid rgba(255,255,255,0.07)", flexShrink: 0, overflow: "hidden" }}>
+                      <div style={{ position: "absolute", inset: 0, background: ci.bg || "#0a0519" }} />
+                      {ci.image_url
+                        ? <img src={ci.image_url} alt={ci.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                        : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 24 }}>{ci.emoji || "🛍"}</span>
+                      }
                     </div>
                   ))}
                   {items.length > 3 && (
-                    <div style={{ width: 50, height: 50, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, border: "1px solid rgba(255,255,255,0.07)", background: "#0a0519", color: "rgba(255,255,255,0.4)" }}>
+                    <div style={{ width: 56, height: 56, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, border: "1px solid rgba(255,255,255,0.07)", background: "#0a0519", color: "rgba(255,255,255,0.4)" }}>
                       +{items.length - 3}
                     </div>
                   )}
@@ -91,7 +95,7 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
                 {/* Footer */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>{o.date} · {items.length} produk</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)" }}>{o.date} · {items.length} produk</div>
                     <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 700, color: "var(--yellow)" }}>Rp {fmt(o.total)}</div>
                     {o.courier && (
                       <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
@@ -202,12 +206,18 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
             </div>
           : myProducts.map((p) => (
             <div key={p.id} style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 16, display: "flex", alignItems: "center", gap: 16 }}>
-              <div style={{ width: 70, height: 70, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, border: "1px solid rgba(255,255,255,0.07)", background: p.bg, flexShrink: 0 }}>{p.emoji}</div>
+              <div style={{ width: 80, height: 80, position: "relative", flexShrink: 0, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
+                <div style={{ position: "absolute", inset: 0, background: p.bg }} />
+                {p.image_url
+                  ? <img src={p.image_url} alt={p.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+                  : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32 }}>{p.emoji}</span>
+                }
+              </div>
               <div style={{ flex: 1 }}>
                 <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", textTransform: "uppercase", marginBottom: 4 }}>{p.name}</div>
                 <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900, color: "var(--yellow)", marginBottom: 4 }}>Rp {fmt(p.price)}</div>
-                <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: 1 }}>
-                  Stok: {p.stock ?? 0} · Terjual: {p.sold || 0} · {p.cat}
+                 <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", letterSpacing: 1 }}>
+                   Stok: {p.stock ?? 0} · Terjual: {parseInt(p.sold) || 0} · {p.cat}
                 </div>
                 {p.reviews?.length > 0 && (
                   <div style={{ fontSize: 9, color: "var(--yellow)", marginTop: 2 }}>⭐ {(p.reviews.reduce((a, r) => a + r.star, 0) / p.reviews.length).toFixed(1)} ({p.reviews.length} ulasan)</div>
@@ -233,9 +243,9 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
 // ─────────────────────────────────────────
 export function NotifPage({ navigate }) {
   const notifs = [
-    { icon: "⚡", title: "Flash Sale dimulai!",  sub: "Nebula Bikini Set diskon 40% selama 8 jam"   },
-    { icon: "📦", title: "Pesanan dikirim",      sub: "ORDER sudah dalam perjalanan"                 },
-    { icon: "🎁", title: "Voucher baru untukmu", sub: "Gunakan kode NOVA20 untuk diskon 20%"         },
+    { icon: "⚡", title: "Flash Sale dimulai!",  sub: "Koleksi Cyber Fashion diskon 40% selama 8 jam" },
+    { icon: "📦", title: "Pesanan dikirim",      sub: "ORDER sudah dalam perjalanan"                  },
+    { icon: "🎁", title: "Voucher baru untukmu", sub: "Gunakan kode NEX20 untuk diskon 20%"            },
   ];
   return (
     <div className="page-anim">
@@ -268,7 +278,7 @@ export function ChatPage({ navigate }) {
         <div style={{ display: "flex", alignItems: "flex-start", gap: 14, background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 16 }}>
           <span style={{ fontSize: 24 }}>🏪</span>
           <div>
-            <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 11, fontWeight: 700, color: "#fff", marginBottom: 4 }}>NOVASWIM Official</div>
+            <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 11, fontWeight: 700, color: "#fff", marginBottom: 4 }}>NEXWEAR Official</div>
             <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)" }}>Terima kasih sudah belanja! Ada yang bisa dibantu?</div>
           </div>
         </div>

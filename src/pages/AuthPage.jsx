@@ -125,7 +125,7 @@ export default function AuthPage({ onLogin }) {
             marginBottom:  8,
             textShadow:    "0 0 20px rgba(255,45,120,0.5)",
           }}>
-            NOVASWIM
+            NEXWEAR
           </div>
           <div style={{
             fontFamily:    "'Orbitron', sans-serif",
@@ -147,7 +147,7 @@ export default function AuthPage({ onLogin }) {
               style={{
                 flex:          1,
                 fontFamily:    "'Press Start 2P', monospace",
-                fontSize:      8,
+                fontSize:      10,
                 padding:       "14px 0",
                 background:    "transparent",
                 border:        "none",
@@ -169,7 +169,7 @@ export default function AuthPage({ onLogin }) {
           {/* Nama — hanya register */}
           {mode === "register" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 7, color: "var(--neon-cyan, #00f5ff)", letterSpacing: 2 }}>
+              <label style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 9, color: "var(--neon-cyan, #00f5ff)", letterSpacing: 2 }}>
                 NAMA LENGKAP
               </label>
               <input
@@ -263,7 +263,7 @@ export default function AuthPage({ onLogin }) {
           </button>
 
           {/* Switch mode */}
-          <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.35)", letterSpacing: 0.5 }}>
+          <div style={{ textAlign: "center", fontSize: 10, color: "rgba(255,255,255,0.6)", letterSpacing: 0.5 }}>
             {mode === "login" ? (
               <>Belum punya akun?{" "}
                 <span onClick={() => { setMode("register"); setError(""); }} style={{ color: "var(--neon-cyan, #00f5ff)", cursor: "pointer", textDecoration: "underline" }}>

@@ -75,20 +75,26 @@ export function CartPage({ cart, cartTotal, couponDiscount, navigate, removeFrom
 function CartItem({ item: ci, onRemove, onQty }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 12, background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 14 }}>
-      <div style={{ width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, flexShrink: 0, background: ci.bg, border: "1px solid rgba(255,255,255,0.07)" }}>{ci.emoji}</div>
+      <div style={{ width: 80, height: 80, position: "relative", flexShrink: 0, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
+        <div style={{ position: "absolute", inset: 0, background: ci.bg || "#0a0519" }} />
+        {ci.image_url
+          ? <img src={ci.image_url} alt={ci.name} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} onError={e => e.currentTarget.style.display = "none"} />
+          : <span style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36 }}>{ci.emoji}</span>
+        }
+      </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 11, fontWeight: 700, color: "#fff", textTransform: "uppercase", marginBottom: 4 }}>{ci.name}</div>
-        <div style={{ fontSize: 10, color: "rgba(255,255,255,0.4)", letterSpacing: 1, marginBottom: 6 }}>Ukuran: {ci.size} · Warna: {ci.color}</div>
         <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900, color: "var(--yellow)", marginBottom: 8 }}>Rp {fmt(ci.price)}</div>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ display: "flex", alignItems: "center" }}>
             <button onClick={() => onQty(ci.id, -1)} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", width: 28, height: 28, fontSize: 16, cursor: "pointer" }}>−</button>
             <input value={ci.qty} readOnly style={{ background: "var(--card)", borderTop: "1px solid rgba(255,255,255,0.15)", borderBottom: "1px solid rgba(255,255,255,0.15)", borderLeft: "none", borderRight: "none", color: "#fff", width: 40, textAlign: "center", fontFamily: "'Orbitron',monospace", fontSize: 12, height: 28 }} />
-            <button onClick={() => onQty(ci.id, 1)} style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", width: 28, height: 28, fontSize: 16, cursor: "pointer" }}>+</button>
+            <button onClick={() => onQty(ci.id, 1)}  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", width: 28, height: 28, fontSize: 16, cursor: "pointer" }}>+</button>
           </div>
           <button onClick={() => onRemove(ci.id)} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(255,45,120,0.3)", color: "var(--pink)", padding: "4px 8px", cursor: "pointer" }}>HAPUS</button>
         </div>
       </div>
+      <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900, color: "var(--yellow)", textShadow: "0 0 8px rgba(255,229,0,0.4)", flexShrink: 0 }}>Rp {fmt(ci.price * ci.qty)}</div>
     </div>
   );
 }
@@ -317,7 +323,7 @@ export function SuccessPage({ navigate }) {
     <div className="page-anim" style={{ maxWidth: 600, margin: "60px auto", padding: 24, textAlign: "center" }}>
       <div style={{ fontSize: 80, marginBottom: 24, animation: "float 2s ease-in-out infinite" }}>✅</div>
       <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 28, fontWeight: 900, color: "var(--cyan)", textShadow: "0 0 20px var(--cyan)", textTransform: "uppercase", marginBottom: 12 }}>PEMBAYARAN BERHASIL!</div>
-      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: 1, marginBottom: 32, lineHeight: 1.8 }}>Terima kasih telah berbelanja di NOVASWIM!<br />Pesanan kamu sedang diproses oleh seller.</div>
+      <div style={{ fontSize: 11, color: "rgba(255,255,255,0.5)", letterSpacing: 1, marginBottom: 32, lineHeight: 1.8 }}>Terima kasih telah berbelanja di NEXWEAR!<br />Pesanan kamu sedang diproses oleh seller.</div>
       <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
         <button onClick={() => navigate("orders")} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "transparent", border: "2px solid var(--cyan)", color: "var(--cyan)", padding: "12px 20px", cursor: "pointer" }}>LACAK PESANAN</button>
         <button onClick={() => navigate("home")}   style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "var(--pink)", border: "2px solid var(--pink)", color: "#fff", padding: "12px 20px", cursor: "pointer", animation: "pulse-pink 2s infinite" }}>BELANJA LAGI</button>

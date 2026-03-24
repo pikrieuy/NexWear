@@ -53,14 +53,14 @@ function TopBar({ navigate, user, onLogout }) {
         {/* User info */}
         {user && (
           <>
-            <span style={{ color: "var(--neon-cyan, #00f5ff)", letterSpacing: 1 }}>
+            <span onClick={() => navigate("profile")} style={{ color: "var(--neon-cyan, #00f5ff)", letterSpacing: 1, cursor: "pointer" }}>
               👤 {displayName}
             </span>
             <button
               onClick={onLogout}
               style={{
                 fontFamily:    "'Press Start 2P', monospace",
-                fontSize:      7,
+                fontSize:      9,
                 background:    "transparent",
                 border:        "1px solid rgba(255,45,120,0.4)",
                 color:         "var(--pink, #ff2d78)",
@@ -91,7 +91,7 @@ function MainBar({ navigate, cartCount, searchVal, setSearchVal }) {
     <div style={{ display: "flex", alignItems: "center", gap: 20, padding: "16px 24px" }}>
       {/* Logo */}
       <div className="logo" onClick={() => navigate("home")}>
-        NOVA<em>SWIM</em>
+        NEX<em>WEAR</em>
       </div>
 
       {/* Search */}
@@ -106,7 +106,7 @@ function MainBar({ navigate, cartCount, searchVal, setSearchVal }) {
           value={searchVal}
           onChange={(e) => setSearchVal(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && navigate("search")}
-          placeholder="CARI BIKINI, SWIMWEAR, GALAXY SET..."
+          placeholder="CARI BAJU, SEPATU, AKSESORIS..."
           style={{
             flex: 1, background: "transparent", border: "none", outline: "none",
             color: "#fff", fontFamily: "'Share Tech Mono', monospace",
@@ -127,9 +127,7 @@ function MainBar({ navigate, cartCount, searchVal, setSearchVal }) {
 
       {/* Icons */}
       <div style={{ display: "flex", gap: 24, alignItems: "center", flexShrink: 0 }}>
-        <HeaderIcon icon="🔔" badge={5}         label="NOTIF" onClick={() => navigate("notif")}      />
-        <HeaderIcon icon="💬" badge={2}         label="CHAT"  onClick={() => navigate("chat")}       />
-        <HeaderIcon icon="🛒" badge={cartCount} label="CART"  onClick={() => navigate("cart_panel")} />
+        <HeaderIcon icon="🛒" badge={cartCount} label="CART" onClick={() => navigate("cart_panel")} />
       </div>
     </div>
   );
@@ -159,7 +157,7 @@ function HeaderIcon({ icon, badge, label, onClick }) {
           {badge}
         </div>
       )}
-      <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 9, color: "rgba(255,255,255,0.45)", letterSpacing: 1 }}>
+      <span style={{ fontFamily: "'Share Tech Mono', monospace", fontSize: 12, color: "rgba(255,255,255,0.7)", letterSpacing: 0.5 }}>
         {label}
       </span>
     </div>
@@ -176,12 +174,12 @@ function NavTabs({ currentPage, navigate }) {
           onClick={() => navigate(t.page)}
           className="nav-tab"
           style={{
-            fontFamily: "'Press Start 2P', monospace", fontSize: 8,
-            color: currentPage === t.page ? "var(--pink)" : "rgba(255,255,255,0.55)",
-            padding: "12px 18px", whiteSpace: "nowrap", cursor: "pointer",
+            fontFamily: "'Share Tech Mono', monospace", fontSize: 13,
+            color: currentPage === t.page ? "var(--pink)" : "rgba(255,255,255,0.75)",
+            padding: "13px 18px", whiteSpace: "nowrap", cursor: "pointer",
             borderBottom: currentPage === t.page ? "2px solid var(--pink)" : "2px solid transparent",
             background: currentPage === t.page ? "rgba(255,45,120,0.04)" : "transparent",
-            letterSpacing: 1, transition: "all 0.2s",
+            transition: "all 0.2s", letterSpacing: 0.5,
           }}
         >
           {t.label}

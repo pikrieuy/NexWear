@@ -2,30 +2,38 @@
 //  src/components/ProductFormModal.jsx
 // ─────────────────────────────────────────
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { BG_OPTIONS, BADGE_OPTIONS } from "../data/products";
 import { formInputStyle, formLabelStyle } from "../styles/shared";
+import { supabase } from "../supabase";
 
 const DEFAULT_FORM = {
   name: "", price: "", oldPrice: "", stock: "",
-  cat: "bikini", emoji: "🌸",
+  cat: "clothing", emoji: "👕",
   bg: BG_OPTIONS[0].value,
   badge: "pcb-new|NEW",
   desc: "",
+  image_url: "",
 };
+
+// ── Nama bucket Supabase Storage ──
+const BUCKET = "product-images";
 
 export default function ProductFormModal({ isOpen, onClose, onSave, editProduct }) {
   const [form, setForm]             = useState(DEFAULT_FORM);
   const [bonusList, setBonusList]   = useState([]);
   const [bonusInput, setBonusInput] = useState("");
 
+  // State upload gambar
+  const [imageFile,     setImageFile]     = useState(null);    // file mentah dari input
+  const [imagePreview,  setImagePreview]  = useState("");      // URL preview lokal
+  const [uploading,     setUploading]     = useState(false);   // loading state
+  const [uploadError,   setUploadError]   = useState("");      // pesan error
+  const fileInputRef = useRef(null);
+
   // Kunci scroll body saat modal terbuka
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = isOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isOpen]);
 
@@ -34,41 +42,101 @@ export default function ProductFormModal({ isOpen, onClose, onSave, editProduct 
     if (!isOpen) return;
     if (editProduct) {
       setForm({
-        name:     editProduct.name,
-        price:    editProduct.price,
-        oldPrice: editProduct.oldPrice || "",
-        stock:    editProduct.stock    || "",
-        cat:      editProduct.cat,
-        emoji:    editProduct.emoji,
-        bg:       editProduct.bg,
-        badge:    `${editProduct.badgeClass}|${editProduct.badgeText}`,
-        desc:     editProduct.desc,
+        name:      editProduct.name,
+        price:     editProduct.price,
+        oldPrice:  editProduct.oldPrice || "",
+        stock:     editProduct.stock    || "",
+        cat:       editProduct.cat,
+        emoji:     editProduct.emoji,
+        bg:        editProduct.bg,
+        badge:     `${editProduct.badgeClass}|${editProduct.badgeText}`,
+        desc:      editProduct.desc,
+        image_url: editProduct.image_url || "",
       });
+      setImagePreview(editProduct.image_url || "");
       setBonusList([...(editProduct.bonus || [])]);
     } else {
       setForm(DEFAULT_FORM);
+      setImagePreview("");
       setBonusList([]);
     }
+    setImageFile(null);
+    setUploadError("");
     setBonusInput("");
   }, [isOpen, editProduct]);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
-  const handleSave = () => {
+  // ── Pilih file gambar ──
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validasi tipe file
+    if (!file.type.startsWith("image/")) {
+      setUploadError("File harus berupa gambar (JPG, PNG, WebP)");
+      return;
+    }
+    // Validasi ukuran (maks 5 MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError("Ukuran gambar maksimal 5 MB");
+      return;
+    }
+
+    setUploadError("");
+    setImageFile(file);
+    // Tampilkan preview lokal sebelum upload
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  // ── Upload ke Supabase Storage ──
+  const uploadImage = async () => {
+    if (!imageFile) return form.image_url; // Tidak ada file baru → pakai URL lama
+
+    setUploading(true);
+    setUploadError("");
+
+    const ext      = imageFile.name.split(".").pop();
+    const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const filePath = `products/${fileName}`;
+
+    const { error: uploadErr } = await supabase.storage
+      .from(BUCKET)
+      .upload(filePath, imageFile, { cacheControl: "3600", upsert: false });
+
+    if (uploadErr) {
+      setUploadError("Gagal upload gambar: " + uploadErr.message);
+      setUploading(false);
+      return null;
+    }
+
+    const { data } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+    setUploading(false);
+    return data.publicUrl;
+  };
+
+  const handleSave = async () => {
     if (!form.name.trim()) return alert("Nama produk wajib diisi!");
     if (!form.price)       return alert("Harga produk wajib diisi!");
     if (!form.desc.trim()) return alert("Deskripsi produk wajib diisi!");
+
+    // Upload gambar dulu (jika ada file baru)
+    const finalImageUrl = await uploadImage();
+    if (finalImageUrl === null) return; // Upload gagal, batal simpan
 
     const [badgeClass, badgeText] = form.badge.split("|");
     onSave(
       {
         ...form,
-        price:    parseInt(form.price),
-        oldPrice: parseInt(form.oldPrice) || 0,
-        stock:    parseInt(form.stock)    || 0,
+        price:     parseInt(form.price),
+        oldPrice:  parseInt(form.oldPrice) || 0,
+        stock:     parseInt(form.stock)    || 0,
         badgeClass,
         badgeText,
-        bonus: [...bonusList],
+        bonus:     [...bonusList],
+        image_url: finalImageUrl || "",
       },
       editProduct?.id
     );
@@ -83,10 +151,16 @@ export default function ProductFormModal({ isOpen, onClose, onSave, editProduct 
 
   const removeBonus = (idx) => setBonusList((prev) => prev.filter((_, i) => i !== idx));
 
+  const removeImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    set("image_url", "");
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
   if (!isOpen) return null;
 
   return (
-    // Overlay — padding atas 70px (navbar atas) + bawah 80px (navbar bawah)
     <div
       onClick={onClose}
       style={{
@@ -164,11 +238,116 @@ export default function ProductFormModal({ isOpen, onClose, onSave, editProduct 
         <div style={{ padding: "24px 24px 8px", flex: 1 }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
 
+            {/* ── UPLOAD FOTO PRODUK ── */}
+            <div style={{ gridColumn: "1/-1" }}>
+              <label style={{ ...formLabelStyle, display: "block", marginBottom: 8 }}>
+                📸 FOTO PRODUK
+              </label>
+
+              {imagePreview ? (
+                // Preview gambar
+                <div style={{ position: "relative", display: "inline-block" }}>
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    style={{
+                      width:        "100%",
+                      maxWidth:     320,
+                      maxHeight:    220,
+                      objectFit:    "cover",
+                      border:       "1px solid rgba(0,245,255,0.3)",
+                      display:      "block",
+                    }}
+                  />
+                  <button
+                    onClick={removeImage}
+                    style={{
+                      position:   "absolute",
+                      top:        6,
+                      right:      6,
+                      background: "rgba(0,0,0,0.75)",
+                      border:     "1px solid rgba(255,45,120,0.6)",
+                      color:      "var(--pink)",
+                      fontSize:   13,
+                      width:      28,
+                      height:     28,
+                      cursor:     "pointer",
+                      display:    "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                    title="Hapus gambar"
+                  >
+                    ✕
+                  </button>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    style={{
+                      marginTop:     8,
+                      fontFamily:    "'Press Start 2P',monospace",
+                      fontSize:      7,
+                      background:    "rgba(0,245,255,0.1)",
+                      border:        "1px solid rgba(0,245,255,0.4)",
+                      color:         "var(--cyan)",
+                      padding:       "8px 14px",
+                      cursor:        "pointer",
+                      display:       "block",
+                      letterSpacing: 1,
+                    }}
+                  >
+                    GANTI FOTO
+                  </button>
+                </div>
+              ) : (
+                // Drop zone / pilih file
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border:         "2px dashed rgba(0,245,255,0.3)",
+                    padding:        "32px 20px",
+                    textAlign:      "center",
+                    cursor:         "pointer",
+                    background:     "rgba(0,245,255,0.03)",
+                    transition:     "border-color 0.2s",
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.borderColor = "rgba(0,245,255,0.6)"}
+                  onMouseLeave={(e) => e.currentTarget.style.borderColor = "rgba(0,245,255,0.3)"}
+                >
+                  <div style={{ fontSize: 32, marginBottom: 10 }}>📷</div>
+                  <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, color: "var(--cyan)", letterSpacing: 1, marginBottom: 8 }}>
+                    KLIK UNTUK PILIH FOTO
+                  </div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.35)" }}>
+                    JPG, PNG, WebP · Maks 5 MB
+                  </div>
+                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.25)", marginTop: 4 }}>
+                    Jika kosong, tampilan pakai gradient tema
+                  </div>
+                </div>
+              )}
+
+              {/* Hidden file input */}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                style={{ display: "none" }}
+              />
+
+              {/* Error upload */}
+              {uploadError && (
+                <div style={{ marginTop: 8, fontSize: 10, color: "var(--pink)", letterSpacing: 0.5 }}>
+                  ⚠ {uploadError}
+                </div>
+              )}
+            </div>
+
             <FormField label="NAMA PRODUK *" full>
               <input
                 value={form.name}
                 onChange={(e) => set("name", e.target.value)}
-                placeholder="Contoh: Nebula Bikini Set"
+                placeholder="Contoh: Cyber Jacket Alpha"
                 style={formInputStyle}
                 autoFocus
               />
@@ -207,28 +386,20 @@ export default function ProductFormModal({ isOpen, onClose, onSave, editProduct 
             <FormField label="KATEGORI">
               <select value={form.cat} onChange={(e) => set("cat", e.target.value)} style={formInputStyle}>
                 {[
-                  ["bikini",    "👙 Bikini Set"  ],
-                  ["onepiece",  "🩱 One Piece"   ],
-                  ["bottoms",   "🩲 Bottoms"     ],
-                  ["bundle",    "📦 Bundle"      ],
-                  ["aksesoris", "🧴 Aksesoris"   ],
+                  ["outwear",   "🧥 Out Wear"    ],
+                  ["accessory", "💍 Accessory"   ],
+                  ["device",    "📱 Device"      ],
+                  ["utility",   "🛠️ Utility"     ],
+                  ["clothing",  "👕 Clothing"    ],
+                  ["shoes",     "👟 Shoes"       ],
+                  ["set",       "🎁 Set"         ],
                 ].map(([v, l]) => (
                   <option key={v} value={v} style={{ background: "#0a0519" }}>{l}</option>
                 ))}
               </select>
             </FormField>
 
-            <FormField label="EMOJI / ICON">
-              <input
-                value={form.emoji}
-                onChange={(e) => set("emoji", e.target.value)}
-                maxLength={4}
-                placeholder="🌸"
-                style={{ ...formInputStyle, fontSize: 22, textAlign: "center" }}
-              />
-            </FormField>
-
-            <FormField label="WARNA TEMA">
+            <FormField label="WARNA TEMA (fallback)">
               <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                 <select
                   value={form.bg}
@@ -245,13 +416,7 @@ export default function ProductFormModal({ isOpen, onClose, onSave, editProduct 
                   flexShrink:     0,
                   background:     form.bg,
                   border:         "1px solid rgba(255,255,255,0.15)",
-                  display:        "flex",
-                  alignItems:     "center",
-                  justifyContent: "center",
-                  fontSize:       20,
-                }}>
-                  {form.emoji}
-                </div>
+                }} />
               </div>
             </FormField>
 
@@ -348,18 +513,23 @@ export default function ProductFormModal({ isOpen, onClose, onSave, editProduct 
           }}>
             BATAL
           </button>
-          <button onClick={handleSave} style={{
-            fontFamily:    "'Press Start 2P',monospace",
-            fontSize:      8,
-            background:    "var(--pink)",
-            border:        "none",
-            color:         "#fff",
-            padding:       "10px 24px",
-            cursor:        "pointer",
-            letterSpacing: 1,
-            animation:     "pulse-pink 2s infinite",
-          }}>
-            SIMPAN PRODUK →
+          <button
+            onClick={handleSave}
+            disabled={uploading}
+            style={{
+              fontFamily:    "'Press Start 2P',monospace",
+              fontSize:      8,
+              background:    uploading ? "rgba(255,45,120,0.4)" : "var(--pink)",
+              border:        "none",
+              color:         "#fff",
+              padding:       "10px 24px",
+              cursor:        uploading ? "not-allowed" : "pointer",
+              letterSpacing: 1,
+              animation:     uploading ? "none" : "pulse-pink 2s infinite",
+              opacity:       uploading ? 0.7 : 1,
+            }}
+          >
+            {uploading ? "UPLOADING..." : "SIMPAN PRODUK →"}
           </button>
         </div>
 

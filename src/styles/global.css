@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════
    src/styles/global.css
-   Global CSS untuk NOVASWIM
+   Global CSS untuk NEXWEAR
 ══════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
@@ -105,7 +105,7 @@ body::before {
   display: inline-flex;
   animation: marquee 18s linear infinite;
   font-family: 'Press Start 2P', monospace;
-  font-size: 7px;
+  font-size: 10px;
   color: #000;
   letter-spacing: 2px;
 }

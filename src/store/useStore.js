@@ -63,6 +63,7 @@ export function useStore() {
         badgeClass: p.badge_class,
         badgeText:  p.badge_text,
         bonus:      p.bonus || [],
+        image_url:  p.image_url || "",
         reviews:    [],
         stock:      p.stock ?? 0,
       })))
@@ -160,7 +161,7 @@ export function useStore() {
   // ─────────────────────────────────────────
   //  CART ACTIONS
   // ─────────────────────────────────────────
-  const addToCart = useCallback((product, size = "M", color = "Neon Pink", qty = 1) => {
+  const addToCart = useCallback((product, size = "M", color = "", qty = 1) => {
     setCart((prev) => {
       const existing = prev.find(
         (ci) => ci.productId === product.id && ci.size === size && ci.color === color
@@ -176,6 +177,7 @@ export function useStore() {
         name:      product.name,
         emoji:     product.emoji,
         bg:        product.bg,
+        image_url: product.image_url || "",
         price:     product.price,
         size,
         color,
@@ -246,6 +248,7 @@ export function useStore() {
       color:      item.color,
       emoji:      item.emoji,
       bg:         item.bg || '#0a0519',
+      image_url:  item.image_url || '',
     }))
 
     const { error: itemsError } = await supabase.from('order_items').insert(items)
@@ -277,7 +280,7 @@ export function useStore() {
           .from('seller_products').select('sold, stock, revenue').eq('id', pid).single()
         if (!freshProd) continue;
 
-        const newSold    = (freshProd.sold    || 0) + qtyBought;
+        const newSold    = (parseInt(freshProd.sold)  || 0) + qtyBought;
         const newStock   = Math.max(0, (freshProd.stock   ?? 0) - qtyBought);
         const newRevenue = (freshProd.revenue || 0) + (item.price * qtyBought);
 
@@ -348,7 +351,7 @@ export function useStore() {
       old_price:   data.oldPrice    || 0,
       emoji:       data.emoji       || "🌸",
       bg:          data.bg          || "linear-gradient(135deg,#0d0020,#3d0080,#ff2d78)",
-      cat:         data.cat         || "bikini",
+      cat:         data.cat         || "clothing",
       badge_class: data.badgeClass  || "pcb-new",
       badge_text:  data.badgeText   || "NEW",
       sold:        0,
@@ -358,6 +361,7 @@ export function useStore() {
       stock:       data.stock       || 0,
       revenue:     data.revenue     || 0,
       bonus:       data.bonus       || [],
+      image_url:   data.image_url   || "",
       user_id:     user?.id,
     }
     if (editingId) {

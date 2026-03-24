@@ -17,9 +17,10 @@ import Toast      from "./components/Toast";
 import AuthPage    from "./pages/AuthPage";
 import HomePage    from "./pages/HomePage";
 import DetailPage  from "./pages/DetailPage";
-import { FlashSalePage, CategoryPage, SearchPage }          from "./pages/CategoryPages";
+import { CategoryPage, SearchPage }          from "./pages/CategoryPages";
 import { CartPage, AddressPage, CheckoutPage, SuccessPage } from "./pages/CheckoutPages";
-import { OrdersPage, SellerPage, NotifPage, ChatPage }      from "./pages/OtherPages";
+import { OrdersPage, SellerPage, NotifPage, ChatPage } from "./pages/OtherPages";
+import ProfilePage from "./pages/ProfilePage";
 
 import { CATEGORY_MAP } from "./data/products";
 
@@ -33,6 +34,8 @@ export default function App() {
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
+      setAuthLoading(false);
+    }).catch(() => {
       setAuthLoading(false);
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -87,8 +90,6 @@ export default function App() {
       case "home":
         return <HomePage {...commonProps} />;
 
-      case "flash":
-        return <FlashSalePage {...commonProps} />;
 
       case "search":
         return <SearchPage keyword={searchVal} {...commonProps} />;
@@ -169,6 +170,9 @@ export default function App() {
           />
         );
 
+      case "profile":
+        return <ProfilePage user={user} navigate={navigate} />;
+
       case "notif":
         return <NotifPage navigate={navigate} />;
 
@@ -185,7 +189,7 @@ export default function App() {
     return (
       <div style={{ minHeight: "100vh", background: "#05020f", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16 }}>
         <div style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 14, color: "#ff2d78", letterSpacing: 3, textShadow: "0 0 20px rgba(255,45,120,0.5)", animation: "pulse 1.5s ease-in-out infinite" }}>
-          NOVASWIM
+          NEXWEAR
         </div>
         <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", fontFamily: "'Share Tech Mono', monospace", letterSpacing: 2 }}>
           LOADING...

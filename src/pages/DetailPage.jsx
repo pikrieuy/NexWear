@@ -8,13 +8,6 @@ import { fmt, discPct, starsStr, avgRating, fmtDate } from "../utils";
 import { backBtnStyle, labelStyle, qtyBtnStyle } from "../styles/shared";
 import Toast from "../components/Toast";
 
-const SIZES  = ["XS", "S", "M", "L", "XL"];
-const COLORS = [
-  { c: "#ff2d78", n: "Neon Pink"    },
-  { c: "#00f5ff", n: "Space Cyan"  },
-  { c: "#b400ff", n: "Cyber Purple" },
-  { c: "#ffe500", n: "Pixel Yellow" },
-];
 const BADGE_COLORS = {
   "pcb-new":  { bg: "var(--cyan)",   color: "#000" },
   "pcb-hot":  { bg: "var(--pink)",   color: "#fff" },
@@ -24,9 +17,8 @@ const BADGE_COLORS = {
 export default function DetailPage({ productId, allProducts, navigate, addToCart, addReview }) {
   const p = allProducts.find((x) => x.id === productId);
 
-  const [size,  setSize]  = useState("S");
-  const [color, setColor] = useState("Neon Pink");
-  const [qty,   setQty]   = useState(1);
+  const [qty,     setQty]     = useState(1);
+  const [zoomImg, setZoomImg] = useState(false);
 
   const [selectedStar, setSelectedStar] = useState(0);
   const [reviewName,   setReviewName]   = useState("");
@@ -42,16 +34,17 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
   );
 
   const avg  = avgRating(p.reviews);
-  const disc = discPct(p.price, p.oldPrice);
+  const disc  = discPct(p.price, p.oldPrice);
   const badge = BADGE_COLORS[p.badgeClass] || { bg: "#333", color: "#fff" };
+  const isSoldOut = p.stock !== undefined && p.stock !== null && p.stock <= 0;
 
   const handleAddCart = () => {
-    addToCart(p, size, color, qty);
+    addToCart(p, "", "", qty);
     showToast(`✓ ${p.name} ditambahkan ke keranjang!`);
   };
 
   const handleBuyNow = () => {
-    addToCart(p, size, color, qty);
+    addToCart(p, "", "", qty);
     navigate("address");
   };
 
@@ -74,6 +67,18 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
   return (
     <div className="page-anim">
       <Toast msg={toast} />
+
+      {/* Lightbox */}
+      {zoomImg && (
+        <div
+          onClick={() => setZoomImg(false)}
+          style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}
+        >
+          <img src={p.image_url} alt={p.name} style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", boxShadow: "0 0 60px rgba(0,245,255,0.2)" }} />
+          <div style={{ position: "absolute", top: 20, right: 24, fontSize: 28, color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>✕</div>
+        </div>
+      )}
+
       <button onClick={() => navigate("home")} style={backBtnStyle}>← KEMBALI</button>
 
       {/* ── Main Detail ── */}
@@ -83,13 +88,31 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
         <div>
           <div style={{ height: 380, display: "flex", alignItems: "center", justifyContent: "center", position: "relative", overflow: "hidden", border: "1px solid rgba(0,245,255,0.2)" }}>
             <div style={{ position: "absolute", inset: 0, background: p.bg }} />
-            <span style={{ position: "relative", zIndex: 1, fontSize: 120, animation: "float 3s ease-in-out infinite", filter: "drop-shadow(0 0 30px rgba(255,45,120,0.8))" }}>{p.emoji}</span>
-          </div>
-          {/* Thumbnails */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 4, marginTop: 8 }}>
-            {["VIEW 1", "VIEW 2", "VIEW 3", "VIEW 4"].map((v, i) => (
-              <div key={v} style={{ background: "var(--card)", border: `1px solid ${i === 0 ? "var(--pink)" : "rgba(255,255,255,0.1)"}`, padding: 10, textAlign: "center", cursor: "pointer", fontFamily: "'Press Start 2P',monospace", fontSize: 7, color: i === 0 ? "var(--pink)" : "rgba(255,255,255,0.4)" }}>{v}</div>
-            ))}
+            {/* Scanline */}
+            <div style={{ position: "absolute", inset: 0, backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px)", zIndex: 1 }} />
+            {/* SOLD OUT overlay */}
+            {isSoldOut && (
+              <div style={{ position: "absolute", inset: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.6)" }}>
+                <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 14, color: "#fff", letterSpacing: 3, background: "rgba(60,60,60,0.95)", padding: "12px 24px", border: "1px solid rgba(255,255,255,0.2)" }}>
+                  SOLD OUT
+                </div>
+              </div>
+            )}
+            {/* Grid */}
+            <div style={{ position: "absolute", inset: 0, backgroundImage: "linear-gradient(rgba(0,245,255,0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0,245,255,0.04) 1px, transparent 1px)", backgroundSize: "20px 20px", zIndex: 1 }} />
+            {p.image_url ? (
+              <img
+                src={p.image_url}
+                alt={p.name}
+                onClick={() => setZoomImg(true)}
+                style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", zIndex: 2, cursor: "zoom-in" }}
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+            ) : (
+              <div style={{ position: "relative", zIndex: 2, textAlign: "center" }}>
+                <span style={{ fontSize: 100, display: "block", filter: "drop-shadow(0 0 30px rgba(255,255,255,0.35))", animation: "float 3s ease-in-out infinite" }}>{p.emoji}</span>
+              </div>
+            )}
           </div>
           {/* Bonus Banner */}
           {p.bonus?.length > 0 && (
@@ -104,12 +127,12 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
         <div>
           <div style={{ display: "inline-block", fontFamily: "'Press Start 2P',monospace", fontSize: 7, padding: "4px 10px", marginBottom: 10, background: badge.bg, color: badge.color }}>{p.badgeText}</div>
           <h1 style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "#fff", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{p.name}</h1>
-          <div style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: 2, marginBottom: 12 }}>SKU: {p.id.toUpperCase()}-2077 · NOVASWIM</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", letterSpacing: 1, marginBottom: 12 }}>SKU: {p.id.toUpperCase()}-2077 · NEXWEAR</div>
 
           {/* Rating */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
             <span style={{ fontSize: 14, color: "var(--yellow)" }}>{avg ? starsStr(parseFloat(avg)) : "☆☆☆☆☆"}</span>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.5)", letterSpacing: 1 }}>{avg ? `${avg} · ${p.reviews.length} ulasan` : "0 ulasan"}</span>
+            <span style={{ fontSize: 13, color: "rgba(255,255,255,0.6)", letterSpacing: 0.5, marginTop: 2 }}>{avg ? `${avg} · ${p.reviews.length} ulasan` : "0 ulasan"}</span>
           </div>
 
           {/* Price */}
@@ -123,33 +146,19 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
             )}
           </div>
 
-          <div style={{ background: "rgba(255,45,120,0.08)", border: "1px solid rgba(255,45,120,0.2)", padding: "10px 14px", marginBottom: 16, fontFamily: "'Press Start 2P',monospace", fontSize: 7, color: "var(--pink)", letterSpacing: 1 }}>
-            ⚡ FLASH SALE · BERAKHIR HARI INI
-          </div>
+          {p.flash && (
+            <div style={{ background: "rgba(255,45,120,0.08)", border: "1px solid rgba(255,45,120,0.2)", padding: "10px 14px", marginBottom: 16, fontFamily: "'Press Start 2P',monospace", fontSize: 7, color: "var(--pink)", letterSpacing: 1 }}>
+              ⚡ FLASH SALE · BERAKHIR HARI INI
+            </div>
+          )}
 
           {/* Desc */}
           <div style={{ marginBottom: 14 }}>
             <span style={labelStyle}>DESKRIPSI PRODUK</span>
-            <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", lineHeight: 1.8, letterSpacing: 0.5 }}>{p.desc}</div>
+            <div style={{ fontSize: 14, color: "rgba(255,255,255,0.75)", lineHeight: 1.8, letterSpacing: 0.3 }}>{p.desc}</div>
           </div>
 
           <hr style={{ border: "none", borderTop: "1px solid rgba(255,255,255,0.07)", margin: "14px 0" }} />
-
-          {/* Size */}
-          <span style={labelStyle}>UKURAN</span>
-          <div style={{ display: "flex", gap: 6, marginBottom: 14, flexWrap: "wrap" }}>
-            {SIZES.map((sz) => (
-              <button key={sz} onClick={() => setSize(sz)} style={{ background: size === sz ? "rgba(255,45,120,0.1)" : "rgba(255,255,255,0.05)", border: `1px solid ${size === sz ? "var(--pink)" : "rgba(255,255,255,0.15)"}`, color: size === sz ? "var(--pink)" : "rgba(255,255,255,0.7)", fontFamily: "'Share Tech Mono',monospace", fontSize: 11, padding: "6px 14px", cursor: "pointer", transition: "all 0.2s" }}>{sz}</button>
-            ))}
-          </div>
-
-          {/* Color */}
-          <span style={labelStyle}>WARNA</span>
-          <div style={{ display: "flex", gap: 8, marginBottom: 14 }}>
-            {COLORS.map((c) => (
-              <div key={c.n} title={c.n} onClick={() => setColor(c.n)} style={{ width: 28, height: 28, background: c.c, border: color === c.n ? "2px solid #fff" : "2px solid transparent", cursor: "pointer", transition: "all 0.2s", transform: color === c.n ? "scale(1.15)" : "none" }} />
-            ))}
-          </div>
 
           {/* Quantity */}
           <span style={labelStyle}>JUMLAH</span>
@@ -157,22 +166,21 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
             <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={qtyBtnStyle}>−</button>
             <input value={qty} readOnly style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontFamily: "'Orbitron',monospace", fontSize: 14, fontWeight: 700, width: 52, textAlign: "center", height: 32 }} />
             <button onClick={() => setQty((q) => Math.min(99, q + 1))} style={qtyBtnStyle}>+</button>
-            <span style={{ fontSize: 10, color: "rgba(255,255,255,0.3)", letterSpacing: 1, marginLeft: 8 }}>Stok: {p.stock || 247}</span>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", letterSpacing: 0.5, marginLeft: 8 }}>Stok: {p.stock || 247}</span>
           </div>
 
           {/* Actions */}
           <div style={{ display: "flex", gap: 8, marginBottom: 16 }}>
-            <button onClick={handleAddCart} style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "transparent", border: "2px solid var(--cyan)", color: "var(--cyan)", padding: 14, cursor: "pointer", letterSpacing: 1 }}>+ KERANJANG</button>
-            <button onClick={handleBuyNow}  style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "var(--pink)", border: "2px solid var(--pink)", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }}>BELI SEKARANG</button>
-          </div>
-
-          {/* Features */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
-            {[["🚀", "Free Ongkir"], ["🔄", "Retur 30 hari"], ["🌞", "UV SPF 50+"], ["💎", "Nano-Fabric"]].map(([icon, txt]) => (
-              <div key={txt} style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 8, textAlign: "center", fontSize: 9, color: "rgba(255,255,255,0.5)", letterSpacing: 0.5 }}>
-                <span style={{ display: "block", fontSize: 18, marginBottom: 4 }}>{icon}</span>{txt}
+            {isSoldOut ? (
+              <div style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 10, background: "rgba(60,60,60,0.5)", border: "1px solid rgba(255,255,255,0.15)", color: "rgba(255,255,255,0.4)", padding: 14, textAlign: "center", letterSpacing: 2 }}>
+                STOK HABIS
               </div>
-            ))}
+            ) : (
+              <>
+                <button onClick={handleAddCart} style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "transparent", border: "2px solid var(--cyan)", color: "var(--cyan)", padding: 14, cursor: "pointer", letterSpacing: 1 }}>+ KERANJANG</button>
+                <button onClick={handleBuyNow}  style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "var(--pink)", border: "2px solid var(--pink)", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }}>BELI SEKARANG</button>
+              </>
+            )}
           </div>
         </div>
       </div>

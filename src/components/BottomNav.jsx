@@ -38,7 +38,7 @@ export default function BottomNav({ currentPage, navigate, cartCount }) {
 
 function NavItem({ item, isActive, cartCount, onClick }) {
   const activeColor = "var(--pink)";
-  const mutedColor  = "rgba(255,255,255,0.4)";
+  const mutedColor  = "rgba(255,255,255,0.65)";
 
   if (item.center) {
     return (
@@ -66,7 +66,7 @@ function NavItem({ item, isActive, cartCount, onClick }) {
               style={{
                 position: "absolute", top: -2, right: -2,
                 background: "var(--yellow)", color: "#000",
-                fontFamily: "'Press Start 2P', monospace", fontSize: 6,
+                fontFamily: "'Press Start 2P', monospace", fontSize: 8,
                 minWidth: 16, height: 16,
                 display: "flex", alignItems: "center", justifyContent: "center",
               }}
@@ -75,7 +75,7 @@ function NavItem({ item, isActive, cartCount, onClick }) {
             </div>
           )}
         </div>
-        <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: mutedColor, letterSpacing: 0.5, marginTop: 4 }}>
+        <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: mutedColor, letterSpacing: 0.5, marginTop: 4 }}>
           {item.label}
         </span>
       </div>
@@ -95,7 +95,7 @@ function NavItem({ item, isActive, cartCount, onClick }) {
       <span style={{ fontSize: 18, color: isActive ? activeColor : "rgba(255,255,255,0.6)" }}>
         {item.icon}
       </span>
-      <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 6, color: isActive ? activeColor : mutedColor, letterSpacing: 0.5 }}>
+      <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: isActive ? activeColor : mutedColor, letterSpacing: 0.5 }}>
         {item.label}
       </span>
     </div>
