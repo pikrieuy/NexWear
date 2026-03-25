@@ -226,7 +226,7 @@ export default function App() {
 
       <Ticker />
 
-      <main style={{ position: "relative", zIndex: 1, maxWidth: 1300, margin: "0 auto", padding: "0 0 40px" }}>
+      <main style={{ position: "relative", maxWidth: 1300, margin: "0 auto", padding: "0 0 40px" }}>
         {renderPage()}
       </main>
 

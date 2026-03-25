@@ -12,7 +12,7 @@ const BADGE_COLORS = {
 };
 
 export default function ProductCard({ product: p, navigate, onAddCart }) {
-  const badge     = BADGE_COLORS[p.badgeClass] || { bg: "#333", color: "#fff" };
+  const badge = BADGE_COLORS[p.badgeClass] || { bg: "#333", color: "#fff" };
   const isSoldOut = p.stock !== undefined && p.stock !== null && p.stock <= 0;
 
   return (

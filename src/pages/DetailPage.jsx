@@ -74,7 +74,7 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
           onClick={() => setZoomImg(false)}
           style={{ position: "fixed", inset: 0, zIndex: 3000, background: "rgba(0,0,0,0.92)", display: "flex", alignItems: "center", justifyContent: "center", cursor: "zoom-out" }}
         >
-          <img src={p.image_url} alt={p.name} style={{ maxWidth: "90vw", maxHeight: "90vh", objectFit: "contain", boxShadow: "0 0 60px rgba(0,245,255,0.2)" }} />
+          <img src={p.image_url} alt={p.name} style={{ maxWidth: "85vw", maxHeight: "85vh", objectFit: "contain", boxShadow: "0 0 60px rgba(0,245,255,0.2)" }} />
           <div style={{ position: "absolute", top: 20, right: 24, fontSize: 28, color: "rgba(255,255,255,0.6)", cursor: "pointer" }}>✕</div>
         </div>
       )}
