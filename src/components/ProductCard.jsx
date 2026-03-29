@@ -3,7 +3,7 @@
 //  Card produk reusable untuk semua grid
 // ─────────────────────────────────────────
 
-import { fmt, starsStr } from "../utils";
+import { fmt, starsStr, avgRating } from "../utils";
 
 const BADGE_COLORS = {
   "pcb-new": { bg: "var(--cyan)", color: "#000" },
@@ -95,7 +95,9 @@ export default function ProductCard({ product: p, navigate, onAddCart }) {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 6 }}>
           <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", letterSpacing: 0.5 }}>{p.sold} terjual</span>
-          <span style={{ fontSize: 9, color: "var(--yellow)" }}>{starsStr(p.rating)}</span>
+          <span style={{ fontSize: 9, color: "var(--yellow)" }}>
+            {p.reviews && p.reviews.length > 0 ? starsStr(avgRating(p.reviews)) : starsStr(p.rating)}
+          </span>
         </div>
 
         {/* Add to Cart / Sold Out button */}

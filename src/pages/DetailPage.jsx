@@ -127,7 +127,7 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
         <div>
           <div style={{ display: "inline-block", fontFamily: "'Press Start 2P',monospace", fontSize: 7, padding: "4px 10px", marginBottom: 10, background: badge.bg, color: badge.color }}>{p.badgeText}</div>
           <h1 style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "#fff", textTransform: "uppercase", letterSpacing: 1, marginBottom: 6 }}>{p.name}</h1>
-          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", letterSpacing: 1, marginBottom: 12 }}>SKU: {p.id.toUpperCase()}-2077 · NEXWEAR</div>
+          <div style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", letterSpacing: 1, marginBottom: 12 }}>SKU: {p.id.substring(0, 8).toUpperCase()}-2077 · NEXWEAR</div>
 
           {/* Rating */}
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
@@ -165,8 +165,8 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
             <button onClick={() => setQty((q) => Math.max(1, q - 1))} style={qtyBtnStyle}>−</button>
             <input value={qty} readOnly style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontFamily: "'Orbitron',monospace", fontSize: 14, fontWeight: 700, width: 52, textAlign: "center", height: 32 }} />
-            <button onClick={() => setQty((q) => Math.min(99, q + 1))} style={qtyBtnStyle}>+</button>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", letterSpacing: 0.5, marginLeft: 8 }}>Stok: {p.stock || 247}</span>
+            <button onClick={() => setQty((q) => Math.min(p.stock ?? 247, q + 1))} style={qtyBtnStyle}>+</button>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.55)", letterSpacing: 0.5, marginLeft: 8 }}>Stok: {p.stock ?? 247}</span>
           </div>
 
           {/* Actions */}
@@ -177,8 +177,8 @@ export default function DetailPage({ productId, allProducts, navigate, addToCart
               </div>
             ) : (
               <>
-                <button onClick={handleAddCart} style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "transparent", border: "2px solid var(--cyan)", color: "var(--cyan)", padding: 14, cursor: "pointer", letterSpacing: 1 }}>+ KERANJANG</button>
-                <button onClick={handleBuyNow}  style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "var(--pink)", border: "2px solid var(--pink)", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }}>BELI SEKARANG</button>
+                <button id="btn-add-cart" aria-label="Tambah ke Keranjang" onClick={handleAddCart} style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "transparent", border: "2px solid var(--cyan)", color: "var(--cyan)", padding: 14, cursor: "pointer", letterSpacing: 1 }}>+ KERANJANG</button>
+                <button id="btn-buy-now" aria-label="Beli Sekarang" onClick={handleBuyNow}  style={{ flex: 1, fontFamily: "'Press Start 2P',monospace", fontSize: 8, background: "var(--pink)", border: "2px solid var(--pink)", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }}>BELI SEKARANG</button>
               </>
             )}
           </div>

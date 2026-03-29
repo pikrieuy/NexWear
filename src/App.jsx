@@ -51,10 +51,16 @@ export default function App() {
   const [searchVal,     setSearchVal]     = useState("");
   const [globalToast,   setGlobalToast]   = useState("");
 
-  const showToast = (msg) => {
+  const showToast = useCallback((msg) => {
     setGlobalToast(msg);
-    setTimeout(() => setGlobalToast(""), 2500);
-  };
+    setTimeout(() => setGlobalToast(""), 3500);
+  }, []);
+
+  useEffect(() => {
+    const handleToastEvent = (e) => showToast(e.detail);
+    window.addEventListener('toast', handleToastEvent);
+    return () => window.removeEventListener('toast', handleToastEvent);
+  }, [showToast]);
 
   const navigate = useCallback((page, param) => {
     if (page === "cart_panel") { setCartPanelOpen(true); return; }

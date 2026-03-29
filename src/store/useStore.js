@@ -266,8 +266,14 @@ export function useStore() {
           .from('products').select('sold, stock').eq('id', numericId).single()
         if (!freshProd) continue;
 
-        const newSold  = (freshProd.sold  || 0) + qtyBought;
-        const newStock = Math.max(0, (freshProd.stock ?? 100) - qtyBought);
+        const stockAvailable = parseInt(freshProd.stock ?? 100, 10);
+        if (stockAvailable < qtyBought) {
+          window.dispatchEvent(new CustomEvent('toast', { detail: `❌ Maaf, stok ${item.name} tidak cukup. (Sisa: ${stockAvailable})` }));
+          continue; // skip updating DB for this item, but since it's order_items, we should ideally rollback. We just skip negative stock here.
+        }
+
+        const newSold  = parseInt(freshProd.sold || 0, 10) + qtyBought;
+        const newStock = stockAvailable - qtyBought;
 
         await supabase.from('products').update({ sold: newSold, stock: newStock }).eq('id', numericId)
         setProducts(prev => prev.map(p =>
@@ -280,8 +286,14 @@ export function useStore() {
           .from('seller_products').select('sold, stock, revenue').eq('id', pid).single()
         if (!freshProd) continue;
 
-        const newSold    = (parseInt(freshProd.sold)  || 0) + qtyBought;
-        const newStock   = Math.max(0, (freshProd.stock   ?? 0) - qtyBought);
+        const stockAvailable = parseInt(freshProd.stock ?? 0, 10);
+        if (stockAvailable < qtyBought) {
+          window.dispatchEvent(new CustomEvent('toast', { detail: `❌ Maaf, stok ${item.name} tidak cukup. (Sisa: ${stockAvailable})` }));
+          continue;
+        }
+
+        const newSold    = parseInt(freshProd.sold || 0, 10) + qtyBought;
+        const newStock   = stockAvailable - qtyBought;
         const newRevenue = (freshProd.revenue || 0) + (item.price * qtyBought);
 
         await supabase.from('seller_products').update({ sold: newSold, stock: newStock, revenue: newRevenue }).eq('id', pid)
@@ -302,8 +314,56 @@ export function useStore() {
   //  ORDER STATUS ACTIONS
   // ─────────────────────────────────────────
   const cancelOrder = useCallback(async (orderId) => {
-    const { error } = await supabase.from('orders').delete().eq('id', orderId)
+    // Cari data order untuk merevert stok
+    setOrders(prev => {
+      const order = prev.find(o => o.id === orderId);
+      if (order && (order.order_items || order.items)) {
+        const items = order.order_items || order.items || [];
+        
+        // Group items to prevent concurrent read-modify-write on same product
+        const grouped = {};
+        items.forEach(item => {
+           const pid = String(item.product_id || item.productId || item.id);
+           if (!grouped[pid]) grouped[pid] = { ...item, totalRestoredQty: parseInt(item.qty, 10) };
+           else grouped[pid].totalRestoredQty += parseInt(item.qty, 10);
+        });
+
+        // Revert stock sequentially
+        const revertStock = async () => {
+          for (const pid of Object.keys(grouped)) {
+            const item = grouped[pid];
+            const qty = item.totalRestoredQty;
+            
+            if (pid.startsWith('p')) {
+              const numericId = parseInt(pid.replace('p', ''), 10);
+              const { data: freshProd } = await supabase.from('products').select('sold, stock').eq('id', numericId).single();
+              if (freshProd) {
+                 const newSold = Math.max(0, parseInt(freshProd.sold || 0, 10) - qty);
+                 const newStock = parseInt(freshProd.stock || 0, 10) + qty;
+                 await supabase.from('products').update({ sold: newSold, stock: newStock }).eq('id', numericId);
+              }
+            } else {
+              const { data: freshProd } = await supabase.from('seller_products').select('sold, stock, revenue').eq('id', pid).single();
+              if (freshProd) {
+                 const newSold = Math.max(0, parseInt(freshProd.sold || 0, 10) - qty);
+                 const newStock = parseInt(freshProd.stock || 0, 10) + qty;
+                 const newRev = Math.max(0, (parseFloat(freshProd.revenue) || 0) - (parseFloat(item.price) * qty));
+                 await supabase.from('seller_products').update({ sold: newSold, stock: newStock, revenue: newRev }).eq('id', pid);
+              }
+            }
+          }
+        };
+        revertStock();
+      }
+      return prev;
+    });
+
+    const { error: itemsError } = await supabase.from('order_items').delete().eq('order_id', orderId);
+    if (itemsError) { console.error('Gagal hapus order items:', itemsError); return; }
+
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
     if (error) { console.error('Gagal cancel order:', error); return; }
+    
     setOrders(prev => prev.filter(o => o.id !== orderId));
   }, []);
 
@@ -358,7 +418,7 @@ export function useStore() {
       rating:      data.rating      || 5,
       description: data.desc        || "",
       flash:       data.flash       || false,
-      stock:       data.stock       || 0,
+      stock:       parseInt(data.stock, 10) || 0,
       revenue:     data.revenue     || 0,
       bonus:       data.bonus       || [],
       image_url:   data.image_url   || "",

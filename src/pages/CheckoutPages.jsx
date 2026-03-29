@@ -8,6 +8,25 @@ import Toast from "../components/Toast";
 import { PROVINCES } from "../data/products";
 
 // ─────────────────────────────────────────
+//  CheckoutProgress Bar
+// ─────────────────────────────────────────
+function CheckoutProgress({ step }) {
+  const steps = ["KERANJANG", "ALAMAT", "BAYAR", "SELESAI"];
+  return (
+    <div style={{ display: "flex", justifyContent: "space-between", margin: "0 24px 24px", position: "relative" }}>
+      <div style={{ position: "absolute", top: 12, left: 0, right: 0, height: 2, background: "rgba(255,255,255,0.05)", zIndex: 0 }} />
+      <div style={{ position: "absolute", top: 12, left: 0, width: `${(step / 3) * 100}%`, height: 2, background: "var(--cyan)", zIndex: 0, transition: "width 0.4s ease-out" }} />
+      {steps.map((s, i) => (
+        <div key={s} style={{ zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+          <div style={{ width: 24, height: 24, borderRadius: "50%", background: i <= step ? "var(--cyan)" : "#0a0519", border: `2px solid ${i <= step ? "var(--cyan)" : "rgba(255,255,255,0.2)"}`, color: i <= step ? "#000" : "rgba(255,255,255,0.5)", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "'Press Start 2P',monospace", fontSize: 8, transition: "all 0.3s" }}>{i + 1}</div>
+          <div style={{ fontFamily: "'Share Tech Mono',monospace", fontSize: 10, color: i <= step ? "#fff" : "rgba(255,255,255,0.3)", transition: "color 0.3s" }}>{s}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────
 //  CartPage
 // ─────────────────────────────────────────
 export function CartPage({ cart, cartTotal, couponDiscount, navigate, removeFromCart, updateCartQty, applyCoupon }) {
@@ -23,8 +42,9 @@ export function CartPage({ cart, cartTotal, couponDiscount, navigate, removeFrom
   return (
     <div className="page-anim" style={{ padding: "0 0 40px" }}>
       <Toast msg={toast} />
-      <button onClick={() => navigate("home")} style={backBtnStyle}>← LANJUT BELANJA</button>
-      <div style={{ padding: 24 }}>
+      <button onClick={() => navigate("home")} style={backBtnStyle} className="glitch-btn">← LANJUT BELANJA</button>
+      <div style={{ padding: "10px 24px 24px" }}>
+        <CheckoutProgress step={0} />
         <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "#fff", textTransform: "uppercase", marginBottom: 20 }}>
           KERANJANG <span style={{ color: "var(--pink)" }}>BELANJA</span>
         </div>
@@ -64,7 +84,7 @@ export function CartPage({ cart, cartTotal, couponDiscount, navigate, removeFrom
               <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900, color: "#fff" }}>TOTAL</span>
               <span style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 20, fontWeight: 900, color: "var(--yellow)", textShadow: "0 0 12px rgba(255,229,0,0.4)" }}>Rp {fmt(Math.max(0, cartTotal - couponDiscount))}</span>
             </div>
-            <button onClick={() => navigate("address")} style={{ display: "block", width: "100%", marginTop: 16, fontFamily: "'Press Start 2P',monospace", fontSize: 9, background: "var(--pink)", border: "none", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }}>PILIH ALAMAT →</button>
+            <button onClick={() => navigate("address")} style={{ display: "block", width: "100%", marginTop: 16, fontFamily: "'Press Start 2P',monospace", fontSize: 9, background: "var(--pink)", border: "none", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }} className="glitch-btn">PILIH ALAMAT →</button>
           </div>
         </div>
       </div>
@@ -91,7 +111,7 @@ function CartItem({ item: ci, onRemove, onQty }) {
             <input value={ci.qty} readOnly style={{ background: "var(--card)", borderTop: "1px solid rgba(255,255,255,0.15)", borderBottom: "1px solid rgba(255,255,255,0.15)", borderLeft: "none", borderRight: "none", color: "#fff", width: 40, textAlign: "center", fontFamily: "'Orbitron',monospace", fontSize: 12, height: 28 }} />
             <button onClick={() => onQty(ci.id, 1)}  style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", width: 28, height: 28, fontSize: 16, cursor: "pointer" }}>+</button>
           </div>
-          <button onClick={() => onRemove(ci.id)} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(255,45,120,0.3)", color: "var(--pink)", padding: "4px 8px", cursor: "pointer" }}>HAPUS</button>
+          <button onClick={() => { if(window.confirm("Yakin hapus produk ini dari keranjang?")) onRemove(ci.id) }} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(255,45,120,0.3)", color: "var(--pink)", padding: "4px 8px", cursor: "pointer" }} className="glitch-btn">HAPUS</button>
         </div>
       </div>
       <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900, color: "var(--yellow)", textShadow: "0 0 8px rgba(255,229,0,0.4)", flexShrink: 0 }}>Rp {fmt(ci.price * ci.qty)}</div>
@@ -110,6 +130,9 @@ export function AddressPage({ addresses, selectedAddressId, setSelectedAddressId
 
   const handleSave = () => {
     if (!form.name || !form.phone || !form.street || !form.city || !form.prov) { showToast("⚠️ Lengkapi semua field!"); return; }
+    if (form.phone.length < 9) { showToast("⚠️ Nomor telepon harus minimal 9 digit!"); return; }
+    if (form.postal && form.postal.length < 4) { showToast("⚠️ Kode pos terlalu pendek!"); return; }
+    
     saveAddress(form);
     setForm({ name: "", phone: "", street: "", city: "", postal: "", prov: "" });
     showToast("✓ Alamat berhasil disimpan!");
@@ -118,7 +141,8 @@ export function AddressPage({ addresses, selectedAddressId, setSelectedAddressId
   return (
     <div className="page-anim">
       <Toast msg={toast} />
-      <button onClick={() => navigate("cart")} style={backBtnStyle}>← KEMBALI KE KERANJANG</button>
+      <button onClick={() => navigate("cart")} style={backBtnStyle} className="glitch-btn">← KEMBALI KE KERANJANG</button>
+      <div style={{ padding: "0 24px" }}><CheckoutProgress step={1} /></div>
       <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 22, fontWeight: 900, color: "#fff", textTransform: "uppercase", letterSpacing: 2, margin: "0 12px 20px" }}>PILIH <span style={{ color: "var(--pink)" }}>ALAMAT PENGIRIMAN</span></div>
       <div className="address-layout" style={{ display: "grid", gridTemplateColumns: "1fr 380px", gap: 20, padding: "0 12px" }}>
         {/* Address List */}
@@ -156,9 +180,9 @@ export function AddressPage({ addresses, selectedAddressId, setSelectedAddressId
         </div>
       </div>
       <div style={{ padding: "20px 12px 0" }}>
-        <button onClick={() => { if (!selectedAddressId) { alert("Pilih alamat dulu!"); return; } navigate("checkout"); }}
-          style={{ display: "block", width: "100%", fontFamily: "'Press Start 2P',monospace", fontSize: 9, background: "var(--pink)", border: "none", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }}>
-          LANJUT KE CHECKOUT →
+        <button onClick={() => { if (!selectedAddressId) { window.dispatchEvent(new CustomEvent('toast', { detail: '⚠️ Pilih alamat pengiriman dulu!' })); return; } navigate("checkout"); }}
+          style={{ display: "block", width: "100%", fontFamily: "'Press Start 2P',monospace", fontSize: 9, background: "var(--pink)", border: "none", color: "#fff", padding: 14, cursor: "pointer", letterSpacing: 1, animation: "pulse-pink 2s infinite" }} className="glitch-btn">
+          LANJUT KE PEMBAYARAN →
         </button>
       </div>
     </div>

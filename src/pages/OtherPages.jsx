@@ -50,6 +50,19 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
             </div>
           : [...filtered].map((o) => {
             const items = o.order_items || o.items || [];
+            
+            const groupedItemsMap = {};
+            items.forEach(item => {
+              const key = item.product_id || item.productId || item.name;
+              if (!groupedItemsMap[key]) {
+                  groupedItemsMap[key] = { ...item, variantsCount: 1, totalQty: item.qty };
+              } else {
+                  groupedItemsMap[key].variantsCount += 1;
+                  groupedItemsMap[key].totalQty += item.qty;
+              }
+            });
+            const groupedItems = Object.values(groupedItemsMap);
+
             const sc = STATUS_STYLE[o.status] || STATUS_STYLE.Dikemas;
             return (
               <div key={o.id} style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 16 }}>
@@ -65,7 +78,7 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
 
                 {/* Item Thumbnails */}
                 <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-                  {items.slice(0, 3).map((ci, i) => (
+                  {groupedItems.slice(0, 3).map((ci, i) => (
                     <div key={i} style={{ width: 56, height: 56, position: "relative", border: "1px solid rgba(255,255,255,0.07)", flexShrink: 0, overflow: "hidden" }}>
                       <div style={{ position: "absolute", inset: 0, background: ci.bg || "#0a0519" }} />
                       {ci.image_url
@@ -74,19 +87,19 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
                       }
                     </div>
                   ))}
-                  {items.length > 3 && (
+                  {groupedItems.length > 3 && (
                     <div style={{ width: 56, height: 56, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, border: "1px solid rgba(255,255,255,0.07)", background: "#0a0519", color: "rgba(255,255,255,0.4)" }}>
-                      +{items.length - 3}
+                      +{groupedItems.length - 3}
                     </div>
                   )}
                 </div>
 
                 {/* Item Detail — size & color */}
-                {items.length > 0 && (
+                {groupedItems.length > 0 && (
                   <div style={{ marginBottom: 10, display: "flex", flexDirection: "column", gap: 4 }}>
-                    {items.map((ci, i) => (
+                    {groupedItems.map((ci, i) => (
                       <div key={i} style={{ fontSize: 9, color: "rgba(255,255,255,0.4)", letterSpacing: 0.5 }}>
-                        {ci.emoji} {ci.name} · <span style={{ color: "rgba(255,255,255,0.6)" }}>Ukuran: {ci.size}</span> · <span style={{ color: "rgba(255,255,255,0.6)" }}>Warna: {ci.color}</span> · x{ci.qty}
+                        {ci.emoji} {ci.name} {ci.variantsCount > 1 ? `(${ci.variantsCount} varian)` : `· Ukuran: ${ci.size || '-'} · Warna: ${ci.color || '-'}`} · <span style={{ color: "rgba(255,255,255,0.6)" }}>x{ci.totalQty}</span>
                       </div>
                     ))}
                   </div>
@@ -95,7 +108,7 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
                 {/* Footer */}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <div>
-                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)" }}>{o.date} · {items.length} produk</div>
+                    <div style={{ fontSize: 10, color: "rgba(255,255,255,0.65)" }}>{o.date} · {items.reduce((s, i) => s + i.qty, 0)} barang</div>
                     <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 700, color: "var(--yellow)" }}>Rp {fmt(o.total)}</div>
                     {o.courier && (
                       <div style={{ fontSize: 9, color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
@@ -105,8 +118,14 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
                   </div>
                   <div style={{ display: "flex", gap: 8 }}>
                     {(o.status === "Dikemas" || o.status === "diproses") && (
+                      <button onClick={() => window.print()}
+                        style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "rgba(0,245,255,0.1)", border: "1px solid rgba(0,245,255,0.3)", color: "var(--cyan)", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ fontSize: 10 }}>🖨️</span> CETAK RESI
+                      </button>
+                    )}
+                    {(o.status === "Dikemas" || o.status === "diproses") && (
                       <button onClick={() => cancelOrder(o.id)}
-                        style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(255,45,120,0.4)", color: "var(--pink)", padding: "6px 10px", cursor: "pointer" }}>
+                        style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "transparent", border: "1px solid rgba(255,45,120,0.4)", color: "var(--pink)", padding: "6px 10px", cursor: "pointer", display: "flex", alignItems: "center" }}>
                         BATAL
                       </button>
                     )}
@@ -133,8 +152,21 @@ export function OrdersPage({ orders, cancelOrder, completeOrder, navigate }) {
 export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct, deleteSellerProduct, currentUser }) {
   const [modalOpen,   setModalOpen]   = useState(false);
   const [editProduct, setEditProduct] = useState(null);
+  const [selectedDocs, setSelectedDocs] = useState([]);
   const [toast,       setToast]       = useState("");
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
+
+  const handleToggleDoc = (id) => {
+    setSelectedDocs(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`Yakin hapus ${selectedDocs.length} produk terpilih?`)) {
+      selectedDocs.forEach(id => deleteSellerProduct(id));
+      setSelectedDocs([]);
+      showToast(`✓ ${selectedDocs.length} Produk berhasil dihapus.`);
+    }
+  };
 
   // Hanya tampil produk milik user yang login
   const myProducts = sellerProducts.filter(p => p.user_id === currentUser?.id);
@@ -189,16 +221,36 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
           { icon: "💰", val: `Rp ${fmt(totalRevenue)}`, label: "PENDAPATAN"   },
           { icon: "⭐", val: avgRatingVal,               label: "RATING TOKO"  },
         ].map((s) => (
-          <div key={s.label} style={{ background: "var(--card)", border: "1px solid rgba(0,245,255,0.15)", padding: 20, textAlign: "center" }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>{s.icon}</div>
-            <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 20, fontWeight: 900, color: "var(--cyan)", marginBottom: 4 }}>{s.val}</div>
-            <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, color: "rgba(255,255,255,0.35)", letterSpacing: 1 }}>{s.label}</div>
+          <div key={s.label} style={{ background: "var(--card)", border: "1px solid rgba(0,245,255,0.15)", padding: "24px 16px", textAlign: "center", boxShadow: "0 4px 20px rgba(0,245,255,0.05)" }}>
+            <div style={{ fontSize: 36, marginBottom: 12 }}>{s.icon}</div>
+            <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 24, fontWeight: 900, color: "var(--cyan)", marginBottom: 6 }}>{s.val}</div>
+            <div style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 7, color: "rgba(255,255,255,0.45)", letterSpacing: 1 }}>{s.label}</div>
           </div>
         ))}
       </div>
 
+      {/* CSS Graph */}
+      <div style={{ background: "var(--card)", border: "1px solid rgba(0,245,255,0.15)", padding: 20, margin: "0 12px 24px", boxShadow: "0 4px 20px rgba(0,245,255,0.05)" }}>
+        <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 13, fontWeight: 700, color: "var(--cyan)", marginBottom: 16 }}>GRAFIK PENJUALAN MINGGUAN (SIMULASI)</div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 12, height: 120, paddingTop: 20, borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+          {[40, 70, 30, 90, 50, 100, 60].map((h, i) => (
+            <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8, height: "100%" }}>
+              <div style={{ width: "100%", height: `${h}%`, background: h === 100 ? "var(--pink)" : "rgba(0,245,255,0.3)", borderRadius: "2px 2px 0 0", transition: "height 0.5s ease", marginTop: "auto" }} />
+              <div style={{ fontSize: 8, color: "rgba(255,255,255,0.5)", fontFamily: "'Press Start 2P',monospace", marginTop: 4 }}>H{i+1}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* Product List */}
-      <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: 1, margin: "0 12px 12px" }}>PRODUK SAYA</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", margin: "0 12px 12px" }}>
+        <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 700, color: "#fff", textTransform: "uppercase", letterSpacing: 1 }}>PRODUK SAYA</div>
+        {selectedDocs.length > 0 && (
+          <button onClick={handleBulkDelete} style={{ fontFamily: "'Press Start 2P',monospace", fontSize: 6, background: "rgba(255,45,120,0.15)", border: "1px solid rgba(255,45,120,0.4)", color: "var(--pink)", padding: "8px 12px", cursor: "pointer", animation: "pulse-pink 1.5s infinite" }} className="glitch-btn">
+            🗑 HAPUS {selectedDocs.length} TERPILIH
+          </button>
+        )}
+      </div>
       <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 10 }}>
         {myProducts.length === 0
           ? <div style={{ textAlign: "center", padding: 40, color: "rgba(255,255,255,0.3)", fontFamily: "'Press Start 2P',monospace", fontSize: 7, letterSpacing: 1, lineHeight: 2, border: "1px dashed rgba(255,255,255,0.1)" }}>
@@ -206,6 +258,7 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
             </div>
           : myProducts.map((p) => (
             <div key={p.id} style={{ background: "var(--card)", border: "1px solid rgba(255,255,255,0.07)", padding: 16, display: "flex", alignItems: "center", gap: 16 }}>
+              <input type="checkbox" checked={selectedDocs.includes(p.id)} onChange={() => handleToggleDoc(p.id)} style={{ accentColor: "var(--pink)", width: 16, height: 16, cursor: "pointer", flexShrink: 0 }} />
               <div style={{ width: 80, height: 80, position: "relative", flexShrink: 0, border: "1px solid rgba(255,255,255,0.07)", overflow: "hidden" }}>
                 <div style={{ position: "absolute", inset: 0, background: p.bg }} />
                 {p.image_url
@@ -217,7 +270,7 @@ export function SellerPage({ sellerProducts, orders, navigate, saveSellerProduct
                 <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 12, fontWeight: 700, color: "#fff", textTransform: "uppercase", marginBottom: 4 }}>{p.name}</div>
                 <div style={{ fontFamily: "'Orbitron',sans-serif", fontSize: 14, fontWeight: 900, color: "var(--yellow)", marginBottom: 4 }}>Rp {fmt(p.price)}</div>
                  <div style={{ fontSize: 10, color: "rgba(255,255,255,0.6)", letterSpacing: 1 }}>
-                   Stok: {p.stock ?? 0} · Terjual: {parseInt(p.sold) || 0} · {p.cat}
+                   Stok: {p.stock ?? 0} {(p.stock ?? 0) < 5 && <span style={{ marginLeft: 6, padding: "2px 6px", background: "rgba(255,45,120,0.15)", color: "var(--pink)", fontSize: 8, border: "1px solid rgba(255,45,120,0.3)", animation: "pulse-pink 1.5s infinite" }}>STOK KRITIS</span>} · Terjual: {parseInt(p.sold) || 0} · {p.cat}
                 </div>
                 {p.reviews?.length > 0 && (
                   <div style={{ fontSize: 9, color: "var(--yellow)", marginTop: 2 }}>⭐ {(p.reviews.reduce((a, r) => a + r.star, 0) / p.reviews.length).toFixed(1)} ({p.reviews.length} ulasan)</div>

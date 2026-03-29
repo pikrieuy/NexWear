@@ -42,12 +42,14 @@ function NavItem({ item, isActive, cartCount, onClick }) {
 
   if (item.center) {
     return (
-      <div
+      <button
+        aria-label={item.label}
         onClick={onClick}
         style={{
           flex: 1, display: "flex", flexDirection: "column",
           alignItems: "center", justifyContent: "center",
           cursor: "pointer", position: "relative",
+          background: "transparent", border: "none", padding: 0,
           borderRight: "1px solid rgba(255,255,255,0.04)",
         }}
       >
@@ -78,17 +80,18 @@ function NavItem({ item, isActive, cartCount, onClick }) {
         <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: mutedColor, letterSpacing: 0.5, marginTop: 4 }}>
           {item.label}
         </span>
-      </div>
+      </button>
     );
   }
 
   return (
-    <div
+    <button
+      aria-label={item.label}
       onClick={onClick}
       style={{
         flex: 1, display: "flex", flexDirection: "column",
         alignItems: "center", justifyContent: "center", gap: 4,
-        cursor: "pointer",
+        cursor: "pointer", background: "transparent", border: "none", padding: 0,
         borderRight: "1px solid rgba(255,255,255,0.04)",
       }}
     >
@@ -98,6 +101,6 @@ function NavItem({ item, isActive, cartCount, onClick }) {
       <span style={{ fontFamily: "'Press Start 2P', monospace", fontSize: 8, color: isActive ? activeColor : mutedColor, letterSpacing: 0.5 }}>
         {item.label}
       </span>
-    </div>
+    </button>
   );
 }
